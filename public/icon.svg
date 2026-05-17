@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <!-- Background with premium gradient -->
+  <rect width="512" height="512" rx="120" fill="url(#bgGrad)" />
+  
+  <!-- Outer glowing rings to represent signal waves -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="white" stroke-width="4" stroke-opacity="0.15" />
+  <circle cx="256" cy="256" r="220" fill="none" stroke="white" stroke-width="2" stroke-opacity="0.08" />
+
+  <!-- Main Glowing Notification Group -->
+  <g filter="url(#dropShadow)" transform="translate(128, 128)">
+    <!-- Bell Icon path -->
+    <path d="M128 32 C119.2 32 112 39.2 112 48 L112 60.8 C77.4 72.6 52 105.7 52 144 L52 234 L22 264 C16 270 20.3 280 29 280 L227 280 C235.7 280 240 270 234 264 L204 234 L204 144 C204 105.7 178.6 72.6 144 60.8 L144 48 C144 39.2 136.8 32 128 32 Z M128 328 C150.1 328 168 310.1 168 288 L88 288 C88 310.1 105.9 328 128 328 Z" fill="#ffffff" />
+    
+    <!-- MEB AOL Academic Book icon inside bell or next to it -->
+    <path d="M100 130 H156 V142 H100 Z M100 154 H156 V166 H100 Z M100 178 H138 V190 H100 Z" fill="#4f46e5" fill-opacity="0.6" />
+    
+    <!-- Red glowing notification dot -->
+    <circle cx="196" cy="76" r="20" fill="#ef4444" stroke="#ffffff" stroke-width="4" />
+  </g>
+</svg>

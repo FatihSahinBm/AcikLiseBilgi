@@ -1,0 +1,25 @@
+{
+  "name": "MEB Açık Lise Duyuru Takip",
+  "short_name": "AOL Duyuru",
+  "description": "MEB Açık Öğretim Lisesi (AOL) duyurularını anlık takip edin ve yeni duyuru yayınlandığında anında push bildirim alın.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
