@@ -40,7 +40,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
-      <body className={`${inter.className} min-h-full bg-zinc-950 text-white antialiased flex flex-col`}>
+      <body className={`${inter.className} min-h-full bg-[#ffe5ec] text-zinc-800 antialiased flex flex-col`}>
         {children}
         
         {/* Load official OneSignal Web SDK page script asynchronously */}

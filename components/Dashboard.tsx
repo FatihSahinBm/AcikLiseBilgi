@@ -39,6 +39,16 @@ interface DashboardProps {
   initialRedisType: string;
 }
 
+const HelloKittyBow = () => (
+  <svg viewBox="0 0 100 80" className="w-8 h-8 drop-shadow-[0_2px_6px_rgba(244,63,94,0.3)] select-none shrink-0 animate-bounce" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animationDuration: '3s' }}>
+    <ellipse cx="30" cy="40" rx="20" ry="22" fill="#ff4b6c" stroke="#1a1a1a" strokeWidth="4.5" />
+    <ellipse cx="70" cy="40" rx="20" ry="22" fill="#ff4b6c" stroke="#1a1a1a" strokeWidth="4.5" />
+    <path d="M 35 30 C 25 35 25 45 35 50" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" />
+    <path d="M 65 30 C 75 35 75 45 65 50" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" />
+    <circle cx="50" cy="40" r="11" fill="#ff4b6c" stroke="#1a1a1a" strokeWidth="4.5" />
+  </svg>
+);
+
 export default function Dashboard({
   initialAnnouncement,
   initialLastChecked,
@@ -263,60 +273,63 @@ export default function Dashboard({
     <div className="w-full max-w-4xl px-4 sm:px-6 py-6 sm:py-10 space-y-8 relative z-10">
       
       {/* Dynamic ambient background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-indigo-500/10 blur-[80px] sm:blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-400/20 blur-[80px] sm:blur-[120px] pointer-events-none -z-10" />
 
       {/* Header and status area */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-            </span>
-            <h1 className="text-xl font-bold tracking-tight text-white">AOL Duyuru Takip</h1>
-            <span className="text-xs bg-indigo-500/20 text-indigo-300 font-medium px-2 py-0.5 rounded-full border border-indigo-500/30">
-              PWA v1.0
-            </span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/70 border border-pink-200/50 p-6 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40">
+        <div className="flex items-center gap-3">
+          <HelloKittyBow />
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+              </span>
+              <h1 className="text-xl font-bold tracking-tight text-pink-600">AOL Duyuru Takip</h1>
+              <span className="text-xs bg-pink-100 text-pink-700 font-medium px-2 py-0.5 rounded-full border border-pink-200/50">
+                PWA v1.0 🎀
+              </span>
+            </div>
+            <p className="text-sm text-zinc-650">MEB Açık Öğretim Lisesi önemli duyuruları anlık cebinizde.</p>
           </div>
-          <p className="text-sm text-zinc-400">MEB Açık Öğretim Lisesi önemli duyuruları anlık cebinizde.</p>
         </div>
 
         {/* Sync / refresh details */}
-        <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs text-zinc-400">
+        <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs text-zinc-550">
           <div className="flex items-center gap-2">
-            <span>Kontrol: <strong className="text-zinc-200">{lastChecked}</strong></span>
+            <span>Kontrol: <strong className="text-pink-650">{lastChecked}</strong></span>
             <button
               onClick={triggerManualCheck}
               disabled={isRefreshing}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-zinc-300 disabled:opacity-50"
+              className="p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100/80 active:scale-95 border border-pink-150 transition-all text-pink-600 disabled:opacity-50"
               title="Şimdi Kontrol Et"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
             </button>
           </div>
-          <div className="flex items-center gap-1">
-            <Cpu className="w-3 h-3 text-indigo-400" />
-            <span>Store: <strong className="text-zinc-200">{redisType}</strong></span>
+          <div className="flex items-center gap-1.5 bg-pink-50/80 text-pink-700 px-2.5 py-0.5 rounded-lg border border-pink-100/60 text-[11px]">
+            <Cpu className="w-3 h-3 text-pink-500" />
+            <span>Store: <strong className="text-pink-650">{redisType}</strong></span>
           </div>
         </div>
       </div>
 
       {/* PWA State Instructions for iOS Safari outside PWA */}
       {showIosPrompt && (
-        <div className="relative overflow-hidden bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-5 rounded-2xl animate-fade-in">
+        <div className="relative overflow-hidden bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200/50 p-5 rounded-3xl shadow-lg shadow-pink-100/30 animate-fade-in text-zinc-700">
           <div className="flex gap-4">
-            <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl h-fit">
+            <div className="p-3 bg-pink-100 text-pink-600 rounded-2xl h-fit border border-pink-200/30">
               <Share2 className="w-6 h-6 animate-pulse" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-sm font-semibold text-amber-200">iPhone Safari Bildirim Kurulumu</h2>
-              <p className="text-xs text-zinc-300 leading-relaxed">
+              <h2 className="text-sm font-semibold text-pink-600">iPhone Safari Bildirim Kurulumu 🎀</h2>
+              <p className="text-xs text-zinc-650 leading-relaxed">
                 Apple güvenlik politikası gereği, iPhone cihazlarda Web Push bildirimleri alabilmek için bu siteyi 
                 <strong> Ana Ekrana Eklemeniz</strong> gerekmektedir.
               </p>
-              <div className="bg-black/30 p-3 rounded-lg text-xs space-y-1.5 text-zinc-200 border border-white/5">
-                <p>1. Safari çubuğundaki <strong className="text-white">"Paylaş" (Share) 📤</strong> butonuna dokunun.</p>
-                <p>2. Menüyü kaydırıp <strong className="text-white">"Ana Ekrana Ekle" (Add to Home Screen) ➕</strong> seçeneğine tıklayın.</p>
+              <div className="bg-white/60 p-3 rounded-2xl text-xs space-y-1.5 text-zinc-700 border border-pink-100">
+                <p>1. Safari çubuğundaki <strong className="text-pink-600">"Paylaş" (Share) 📤</strong> butonuna dokunun.</p>
+                <p>2. Menüyü kaydırıp <strong className="text-pink-600">"Ana Ekrana Ekle" (Add to Home Screen) ➕</strong> seçeneğine tıklayın.</p>
                 <p>3. Ana ekrana eklenen uygulamayı açıp alttaki <strong>"Bildirimleri Aç"</strong> butonunu aktif edin.</p>
               </div>
             </div>
@@ -329,17 +342,20 @@ export default function Dashboard({
         
         {/* Left Column: Notification Control Panel */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 space-y-5 backdrop-blur-md">
-            <h2 className="text-sm font-semibold tracking-wider text-zinc-400 uppercase">BİLDİRİM AYARLARI</h2>
+          <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-5 backdrop-blur-md shadow-xl shadow-pink-100/40">
+            <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1">
+              <span>BİLDİRİM AYARLARI</span>
+              <span>🎀</span>
+            </h2>
             
             {/* Status Visualizer */}
-            <div className="flex flex-col items-center justify-center p-6 bg-black/40 rounded-xl border border-white/5 space-y-3">
+            <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
               <div className={`p-4 rounded-full ${
                 permission === 'granted' && !isMuted
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
                   : permission === 'granted' && isMuted
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  : 'bg-zinc-800 text-zinc-400'
+                  ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                  : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
               }`}>
                 {permission === 'granted' && !isMuted ? (
                   <Bell className="w-8 h-8 animate-bounce" />
@@ -351,7 +367,7 @@ export default function Dashboard({
               </div>
               <div className="text-center">
                 <div className="text-xs text-zinc-500">Durum</div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-pink-650">
                   {permission === 'granted'
                     ? isMuted
                       ? 'Sessize Alındı'
@@ -368,7 +384,7 @@ export default function Dashboard({
               {permission !== 'granted' ? (
                 <button
                   onClick={enableNotifications}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/20 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-pink-500/25 cursor-pointer"
                 >
                   <Bell className="w-4 h-4" />
                   Bildirimleri Aç
@@ -378,10 +394,10 @@ export default function Dashboard({
                   {/* Mute Button */}
                   <button
                     onClick={toggleMute}
-                    className={`w-full flex items-center justify-center gap-2 font-medium py-3 px-4 rounded-xl border transition-all active:scale-[0.98] cursor-pointer ${
+                    className={`w-full flex items-center justify-center gap-2 font-medium py-3 px-4 rounded-2xl border transition-all active:scale-[0.98] cursor-pointer ${
                       isMuted
-                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
-                        : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-750'
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/50'
+                        : 'bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-250/50'
                     }`}
                   >
                     {isMuted ? (
@@ -401,10 +417,10 @@ export default function Dashboard({
                   <button
                     onClick={sendTestNotification}
                     disabled={testPushLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-500/20 font-medium py-3 px-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100/80 text-pink-600 border border-pink-200/50 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
                   >
                     {testPushLoading ? (
-                      <span className="w-4 h-4 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                      <span className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin" />
                     ) : (
                       <Bell className="w-4 h-4" />
                     )}
@@ -416,30 +432,30 @@ export default function Dashboard({
 
             {/* Test Notification Result Alert */}
             {testPushResult && (
-              <div className={`p-4 rounded-xl text-xs flex gap-2 border ${
+              <div className={`p-4 rounded-2xl text-xs flex gap-2 border ${
                 testPushResult.success 
-                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' 
-                  : 'bg-red-500/10 text-red-300 border-red-500/20'
+                  ? 'bg-pink-50 text-pink-700 border-pink-200/40' 
+                  : 'bg-red-50 text-red-700 border-red-200/40'
               }`}>
-                <Info className="w-4 h-4 shrink-0" />
+                <Info className="w-4 h-4 shrink-0 text-pink-500" />
                 <p>{testPushResult.message}</p>
               </div>
             )}
 
             {/* Subscription Key Debug Card */}
             {subscriptionId && (
-              <div className="bg-black/30 border border-white/5 rounded-xl p-4 space-y-2 text-xs">
+              <div className="bg-pink-50/40 border border-pink-100 rounded-2xl p-4 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-zinc-500">
                   <span>OneSignal Aygıt Kimliği:</span>
                   <button
                     onClick={() => copyToClipboard(subscriptionId)}
-                    className="hover:text-white p-1 rounded transition-colors"
+                    className="hover:text-pink-600 p-1 rounded transition-colors text-zinc-400"
                     title="Kimliği Kopyala"
                   >
                     {copied ? 'Kopyalandı!' : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <div className="font-mono text-zinc-300 break-all select-all bg-black/50 p-2.5 rounded border border-white/5 leading-normal">
+                <div className="font-mono text-pink-700 break-all select-all bg-white/70 p-2.5 rounded-xl border border-pink-100/80 leading-normal">
                   {subscriptionId}
                 </div>
               </div>
@@ -449,19 +465,22 @@ export default function Dashboard({
 
         {/* Right Column: Latest Announcement Details */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 space-y-6 backdrop-blur-md">
+          <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-6 backdrop-blur-md shadow-xl shadow-pink-100/40">
             
             {/* Header info */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-white/5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-pink-100">
               <div className="space-y-1">
-                <h2 className="text-sm font-semibold tracking-wider text-zinc-400 uppercase">MEB SON DUYURU</h2>
-                <div className="text-xs text-indigo-400 font-medium">Scraped from: aol.meb.gov.tr</div>
+                <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1">
+                  <span>MEB SON DUYURU</span>
+                  <span>🎀</span>
+                </h2>
+                <div className="text-[11px] text-pink-500 font-semibold bg-pink-100/50 px-2 py-0.5 rounded-lg border border-pink-200/30 w-fit">Scraped from: aol.meb.gov.tr</div>
               </div>
               <div className="flex flex-wrap gap-2 text-[11px]">
-                <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-lg">
+                <span className="bg-pink-50 text-pink-600 border border-pink-200/30 px-2.5 py-1 rounded-lg">
                   Yayın: {announcement.publishDate}
                 </span>
-                <span className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                <span className="bg-rose-50 text-rose-600 border border-rose-200/30 px-2.5 py-1 rounded-lg">
                   Güncelleme: {announcement.updateDate}
                 </span>
               </div>
@@ -469,10 +488,10 @@ export default function Dashboard({
 
             {/* Title card with modern layout */}
             <div className="space-y-3">
-              <h3 className="text-lg sm:text-xl font-bold text-white leading-snug">
+              <h3 className="text-lg sm:text-xl font-bold text-zinc-800 leading-snug">
                 {announcement.title}
               </h3>
-              <p className="text-sm text-zinc-300 leading-relaxed">
+              <p className="text-sm text-zinc-650 leading-relaxed">
                 {announcement.description}
               </p>
             </div>
@@ -480,8 +499,8 @@ export default function Dashboard({
             {/* Attached Files & Guides Section */}
             {announcement.files && announcement.files.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-xs font-semibold text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-zinc-400" />
+                <h4 className="text-xs font-semibold text-pink-500 tracking-wider uppercase flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-pink-400" />
                   Eğitim ve Kayıt Kılavuzları
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -491,17 +510,17 @@ export default function Dashboard({
                       href={file.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3.5 bg-black/40 border border-white/5 rounded-xl hover:bg-indigo-950/20 hover:border-indigo-500/20 active:scale-[0.99] transition-all group"
+                      className="flex items-center justify-between p-3.5 bg-pink-50/20 border border-pink-100 rounded-2xl hover:bg-pink-100/40 hover:border-pink-300 active:scale-[0.99] transition-all group"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="p-2 bg-indigo-500/15 text-indigo-400 rounded-lg group-hover:bg-indigo-500/35 group-hover:text-white transition-colors">
+                        <div className="p-2 bg-pink-100 text-pink-600 rounded-xl group-hover:bg-pink-200 group-hover:text-pink-700 transition-colors">
                           <FileText className="w-4 h-4 shrink-0" />
                         </div>
-                        <span className="text-xs font-medium text-zinc-300 group-hover:text-white transition-colors truncate">
+                        <span className="text-xs font-medium text-zinc-700 group-hover:text-pink-600 transition-colors truncate">
                           {file.title}
                         </span>
                       </div>
-                      <Download className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white shrink-0 ml-2" />
+                      <Download className="w-3.5 h-3.5 text-zinc-400 group-hover:text-pink-600 shrink-0 ml-2" />
                     </a>
                   ))}
                 </div>
@@ -513,7 +532,7 @@ export default function Dashboard({
               href={announcement.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white border border-white/10 py-3 px-5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] w-full"
+              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-pink-50/50 text-zinc-700 hover:text-pink-600 border border-pink-200/50 py-3 px-5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.98] w-full shadow-sm"
             >
               Resmi MEB Duyuru Sayfasına Git
               <ExternalLink className="w-4 h-4" />
@@ -525,13 +544,23 @@ export default function Dashboard({
       </div>
 
       {/* Informative Footer */}
-      <footer className="text-center text-xs text-zinc-500 pt-6 space-y-2 border-t border-white/5">
-        <p>© 2026 MEB AOL Duyuru Takip PWA uygulaması.</p>
-        <p className="max-w-md mx-auto leading-relaxed">
+      <footer className="text-center text-xs text-pink-650/70 pt-6 space-y-2 border-t border-pink-200/50">
+        <p>© 2026 MEB AOL Duyuru Takip PWA uygulaması. 🎀</p>
+        <p className="max-w-md mx-auto leading-relaxed text-zinc-500">
           Bu uygulama MEB sitesini her 15 dakikada bir kontrol eder ve güncellemeleri iPhone / Android PWA 
           cihazlarınıza anında iletir.
         </p>
       </footer>
+
+      {/* Floating looping Hello Kitty GIF in the bottom right corner */}
+      <div className="fixed bottom-4 right-4 z-50 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none select-none drop-shadow-[0_4px_12px_rgba(244,63,94,0.2)] animate-bounce" style={{ animationDuration: '4s' }}>
+        <img 
+          src="https://media.tenor.com/y_DklcOGDqYAAAAi/hello-kitty.gif" 
+          alt="Hello Kitty Sticker"
+          className="w-full h-full object-contain"
+          loading="lazy"
+        />
+      </div>
 
     </div>
   );
