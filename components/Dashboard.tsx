@@ -78,9 +78,10 @@ function calculateTimeLeft(targetDate: Date) {
 }
 
 function CountdownTimer() {
-  const [activeTab, setActiveTab] = useState<'yazili' | 'esinaV'>('yazili');
+  const [activeTab, setActiveTab] = useState<'yazili' | 'esinaV'>('esinaV');
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, completed: false });
   const [showTips, setShowTips] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const targetDate = TARGETS[activeTab];
@@ -102,109 +103,125 @@ function CountdownTimer() {
   const progressPercent = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
 
   return (
-    <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-5 backdrop-blur-md shadow-xl shadow-pink-100/40">
-      <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-pink-400" />
-        <span>SINAV GERİ SAYIMI</span>
-        <span>⏳</span>
-      </h2>
+    <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
+      {/* Collapsible Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
+      >
+        <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1.5 select-none">
+          <Clock className="w-3.5 h-3.5 text-pink-400" />
+          <span>SINAV GERİ SAYIMI</span>
+          <span>⏳</span>
+        </h2>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-pink-400 transition-transform" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-pink-400 transition-transform" />
+        )}
+      </button>
 
-      {/* Tabs */}
-      <div className="flex bg-pink-50/50 p-1.5 rounded-2xl border border-pink-100/80">
-        <button
-          onClick={() => setActiveTab('yazili')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-            activeTab === 'yazili'
-              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
-              : 'text-zinc-650 hover:text-pink-600'
-          }`}
-        >
-          Yazılı Sınav (18 Tem)
-        </button>
-        <button
-          onClick={() => setActiveTab('esinaV')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-            activeTab === 'esinaV'
-              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
-              : 'text-zinc-650 hover:text-pink-600'
-          }`}
-        >
-          e-Sınav (01 Tem)
-        </button>
-      </div>
+      {/* Collapsible Content */}
+      {isExpanded && (
+        <div className="px-6 pb-6 space-y-5 animate-fade-in border-t border-pink-100/40 pt-5">
+          {/* Tabs */}
+          <div className="flex bg-pink-50/50 p-1.5 rounded-2xl border border-pink-100/80">
+            <button
+              onClick={() => setActiveTab('yazili')}
+              className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'yazili'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+                  : 'text-zinc-650 hover:text-pink-600'
+              }`}
+            >
+              Yazılı Sınav (18 Tem)
+            </button>
+            <button
+              onClick={() => setActiveTab('esinaV')}
+              className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'esinaV'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+                  : 'text-zinc-650 hover:text-pink-600'
+              }`}
+            >
+              e-Sınav (01 Tem)
+            </button>
+          </div>
 
-      {/* Timer display */}
-      {timeLeft.completed ? (
-        <div className="text-center py-4 text-pink-600 font-bold text-sm bg-pink-50/30 rounded-2xl border border-pink-100/50 flex flex-col items-center gap-1.5 animate-pulse">
-          <Sparkles className="w-6 h-6 text-pink-500" />
-          <span>Sınav Zamanı Geldi! Başarılar Dileriz 🌸</span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-4 gap-2 text-center">
-          {[
-            { label: 'Gün', value: timeLeft.days },
-            { label: 'Saat', value: timeLeft.hours },
-            { label: 'Dak', value: timeLeft.minutes },
-            { label: 'Sn', value: timeLeft.seconds }
-          ].map((unit, i) => (
-            <div key={i} className="bg-pink-50/40 border border-pink-100/80 p-2.5 rounded-2xl flex flex-col items-center shadow-sm">
-              <span className="text-xl sm:text-2xl font-black text-pink-700 leading-tight">
-                {unit.value.toString().padStart(2, '0')}
-              </span>
-              <span className="text-[10px] text-zinc-500 font-semibold">{unit.label}</span>
+          {/* Timer display */}
+          {timeLeft.completed ? (
+            <div className="text-center py-4 text-pink-600 font-bold text-sm bg-pink-50/30 rounded-2xl border border-pink-100/50 flex flex-col items-center gap-1.5 animate-pulse">
+              <Sparkles className="w-6 h-6 text-pink-500" />
+              <span>Sınav Zamanı Geldi! Başarılar Dileriz 🌸</span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Progress Bar */}
-      <div className="space-y-1.5">
-        <div className="flex justify-between text-[11px] text-zinc-500 font-medium">
-          <span>Dönem Hazırlığı</span>
-          <span className="font-bold text-pink-600">{Math.round(progressPercent)}%</span>
-        </div>
-        <div className="w-full h-3 bg-pink-100/40 rounded-full border border-pink-100 overflow-hidden shadow-inner p-[1px]">
-          <div
-            className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full transition-all duration-1000 shadow-md"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Tips Accordion */}
-      <div className="border-t border-pink-100/60 pt-4 space-y-2">
-        <button
-          onClick={() => setShowTips(!showTips)}
-          className="w-full flex items-center justify-between text-xs font-bold text-pink-650 hover:text-pink-700 select-none cursor-pointer"
-        >
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
-            Önemli Sınav İpuçları & Kılavuz
-          </span>
-          {showTips ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-
-        {showTips && (
-          <div className="bg-pink-50/30 border border-pink-100/50 p-4 rounded-2xl text-xs text-zinc-650 space-y-2.5 animate-fade-in leading-relaxed">
-            <div className="flex items-start gap-2">
-              <span className="text-pink-500 shrink-0">🌸</span>
-              <p><strong>Fotoğraflı Giriş Belgesi:</strong> Belgesinde fotoğraf bulunmayan öğrenciler sınava alınmaz. Halk Eğitim'den fotoğrafınızı sisteme yükletin.</p>
+          ) : (
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[
+                { label: 'Gün', value: timeLeft.days },
+                { label: 'Saat', value: timeLeft.hours },
+                { label: 'Dak', value: timeLeft.minutes },
+                { label: 'Sn', value: timeLeft.seconds }
+              ].map((unit, i) => (
+                <div key={i} className="bg-pink-50/40 border border-pink-100/80 p-2.5 rounded-2xl flex flex-col items-center shadow-sm">
+                  <span className="text-xl sm:text-2xl font-black text-pink-700 leading-tight">
+                    {unit.value.toString().padStart(2, '0')}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-semibold">{unit.label}</span>
+                </div>
+              ))}
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-pink-500 shrink-0">🌸</span>
-              <p><strong>Geçerli Kimlik Kartı:</strong> Sınav günü fotoğraflı kimlik veya pasaportunuzu yanınızda getirmeyi unutmayın.</p>
+          )}
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[11px] text-zinc-500 font-medium">
+              <span>Dönem Hazırlığı</span>
+              <span className="font-bold text-pink-600">{Math.round(progressPercent)}%</span>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-pink-500 shrink-0">🌸</span>
-              <p><strong>e-Sınav Randevusu:</strong> 9 ve daha az sayıda ders seçtiyseniz e-Sınav randevusu almak zorundasınız.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-pink-500 shrink-0">🌸</span>
-              <p><strong>Sınav Giriş Kuralları:</strong> Sınav salonunda en geç 30 dakika önce hazır bulunmanız gerekmektedir.</p>
+            <div className="w-full h-3 bg-pink-100/40 rounded-full border border-pink-100 overflow-hidden shadow-inner p-[1px]">
+              <div
+                className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full transition-all duration-1000 shadow-md"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Tips Accordion */}
+          <div className="border-t border-pink-100/60 pt-4 space-y-2">
+            <button
+              onClick={() => setShowTips(!showTips)}
+              className="w-full flex items-center justify-between text-xs font-bold text-pink-650 hover:text-pink-700 select-none cursor-pointer"
+            >
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+                Önemli Sınav İpuçları & Kılavuz
+              </span>
+              {showTips ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showTips && (
+              <div className="bg-pink-50/30 border border-pink-100/50 p-4 rounded-2xl text-xs text-zinc-650 space-y-2.5 animate-fade-in leading-relaxed">
+                <div className="flex items-start gap-2">
+                  <span className="text-pink-500 shrink-0">🌸</span>
+                  <p><strong>Fotoğraflı Giriş Belgesi:</strong> Belgesinde fotoğraf bulunmayan öğrenciler sınava alınmaz. Halk Eğitim'den fotoğrafınızı sisteme yükletin.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-pink-500 shrink-0">🌸</span>
+                  <p><strong>Geçerli Kimlik Kartı:</strong> Sınav günü fotoğraflı kimlik veya pasaportunuzu yanınızda getirmeyi unutmayın.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-pink-500 shrink-0">🌸</span>
+                  <p><strong>e-Sınav Randevusu:</strong> 9 ve daha az sayıda ders seçtiyseniz e-Sınav randevusu almak zorundasınız.</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-pink-500 shrink-0">🌸</span>
+                  <p><strong>Sınav Giriş Kuralları:</strong> Sınav salonunda en geç 30 dakika önce hazır bulunmanız gerekmektedir.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -235,6 +252,9 @@ export default function Dashboard({
 
   // Notification Copy Alert State
   const [copied, setCopied] = useState(false);
+
+  // Card collapsibility state
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
 
   // Confirmation state (for registration, course selection, or exam appointment)
   const [isConfirmed, setIsConfirmed] = useState<boolean | null>(null);
@@ -752,118 +772,134 @@ export default function Dashboard({
         
         {/* Left Column: Notification Control Panel */}
         <div className="md:col-span-1 space-y-6">
-          <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-5 backdrop-blur-md shadow-xl shadow-pink-100/40">
-            <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1">
-              <span>BİLDİRİM AYARLARI</span>
-              <span>🎀</span>
-            </h2>
-            
-            {/* Status Visualizer */}
-            <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
-              <div className={`p-4 rounded-full ${
-                permission === 'granted'
-                  ? (subscriptionId 
-                      ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
-                      : 'bg-amber-100 text-amber-600 border border-amber-200 shadow-md shadow-amber-100/50 animate-pulse')
-                  : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
-              }`}>
-                {permission === 'granted' ? (
-                  subscriptionId ? (
-                    <Bell className="w-8 h-8 animate-bounce" />
-                  ) : (
-                    <BellOff className="w-8 h-8 text-amber-500" />
-                  )
-                ) : (
-                  <BellOff className="w-8 h-8" />
-                )}
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-zinc-500">Durum</div>
-                <div className="text-sm font-bold text-pink-650">
-                  {permission === 'granted'
-                    ? (subscriptionId ? 'Bildirimler Aktif' : 'Kurulum Gerekli ⚠️')
-                    : permission === 'denied'
-                    ? 'Engellendi'
-                    : 'İzin Bekleniyor'}
-                </div>
-              </div>
-            </div>
-
-            {/* Toggle Actions */}
-            <div className="space-y-3">
-              {permission !== 'granted' ? (
-                <button
-                  onClick={enableNotifications}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-pink-500/25 cursor-pointer"
-                >
-                  <Bell className="w-4 h-4" />
-                  Bildirimleri Aç
-                </button>
-              ) : !subscriptionId ? (
-                <div className="space-y-2.5">
-                  <div className="p-3 bg-amber-50/60 border border-amber-200/30 rounded-2xl text-[11px] text-amber-700 leading-relaxed">
-                    <strong>⚠️ Aygıt Kaydı Tamamlanamadı:</strong> İzinler aktif görünmesine rağmen cihazınız sisteme kaydedilemedi. iOS/Safari Web Push kuralları gereği, kaydı tamamlamak için aşağıdaki butona basmalısınız.
-                  </div>
-                  <button
-                    onClick={completeRegistration}
-                    disabled={testPushLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/25 cursor-pointer"
-                  >
-                    {testPushLoading ? (
-                      <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    ) : (
-                      <BellRing className="w-4 h-4 animate-pulse" />
-                    )}
-                    Bildirim Kaydını Tamamla
-                  </button>
-                </div>
+          <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
+            {/* Collapsible Header */}
+            <button
+              onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+              className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
+            >
+              <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1 select-none">
+                <span>BİLDİRİM AYARLARI</span>
+                <span>🎀</span>
+              </h2>
+              {isSettingsExpanded ? (
+                <ChevronUp className="w-4 h-4 text-pink-400 transition-transform" />
               ) : (
-                <div className="space-y-2">
-                  {/* Send Test Notification Button */}
-                  <button
-                    onClick={sendTestNotification}
-                    disabled={testPushLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100/80 text-pink-600 border border-pink-200/50 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
-                  >
-                    {testPushLoading ? (
-                      <span className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin" />
-                    ) : (
-                      <Bell className="w-4 h-4" />
-                    )}
-                    Test Bildirimi Gönder
-                  </button>
-                </div>
+                <ChevronDown className="w-4 h-4 text-pink-400 transition-transform" />
               )}
-            </div>
-
-            {/* Test Notification Result Alert */}
-            {testPushResult && (
-              <div className={`p-4 rounded-2xl text-xs flex gap-2 border ${
-                testPushResult.success 
-                  ? 'bg-pink-50 text-pink-700 border-pink-200/40' 
-                  : 'bg-red-50 text-red-700 border-red-200/40'
-              }`}>
-                <Info className="w-4 h-4 shrink-0 text-pink-500" />
-                <p>{testPushResult.message}</p>
-              </div>
-            )}
-
-            {/* Subscription Key Debug Card */}
-            {subscriptionId && (
-              <div className="bg-pink-50/40 border border-pink-100 rounded-2xl p-4 space-y-2 text-xs">
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span>OneSignal Aygıt Kimliği:</span>
-                  <button
-                    onClick={() => copyToClipboard(subscriptionId)}
-                    className="hover:text-pink-600 p-1 rounded transition-colors text-zinc-400"
-                    title="Kimliği Kopyala"
-                  >
-                    {copied ? 'Kopyalandı!' : <Copy className="w-3.5 h-3.5" />}
-                  </button>
+            </button>
+            
+            {/* Collapsible Content */}
+            {isSettingsExpanded && (
+              <div className="px-6 pb-6 space-y-5 animate-fade-in border-t border-pink-100/40 pt-5">
+                {/* Status Visualizer */}
+                <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
+                  <div className={`p-4 rounded-full ${
+                    permission === 'granted'
+                      ? (subscriptionId 
+                          ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
+                          : 'bg-amber-100 text-amber-600 border border-amber-200 shadow-md shadow-amber-100/50 animate-pulse')
+                      : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
+                  }`}>
+                    {permission === 'granted' ? (
+                      subscriptionId ? (
+                        <Bell className="w-8 h-8 animate-bounce" />
+                      ) : (
+                        <BellOff className="w-8 h-8 text-amber-500" />
+                      )
+                    ) : (
+                      <BellOff className="w-8 h-8" />
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-zinc-500">Durum</div>
+                    <div className="text-sm font-bold text-pink-650">
+                      {permission === 'granted'
+                        ? (subscriptionId ? 'Bildirimler Aktif' : 'Kurulum Gerekli ⚠️')
+                        : permission === 'denied'
+                        ? 'Engellendi'
+                        : 'İzin Bekleniyor'}
+                    </div>
+                  </div>
                 </div>
-                <div className="font-mono text-pink-700 break-all select-all bg-white/70 p-2.5 rounded-xl border border-pink-100/80 leading-normal">
-                  {subscriptionId}
+
+                {/* Toggle Actions */}
+                <div className="space-y-3">
+                  {permission !== 'granted' ? (
+                    <button
+                      onClick={enableNotifications}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-pink-500/25 cursor-pointer"
+                    >
+                      <Bell className="w-4 h-4" />
+                      Bildirimleri Aç
+                    </button>
+                  ) : !subscriptionId ? (
+                    <div className="space-y-2.5">
+                      <div className="p-3 bg-amber-50/60 border border-amber-200/30 rounded-2xl text-[11px] text-amber-700 leading-relaxed">
+                        <strong>⚠️ Aygıt Kaydı Tamamlanamadı:</strong> İzinler aktif görünmesine rağmen cihazınız sisteme kaydedilemedi. iOS/Safari Web Push kuralları gereği, kaydı tamamlamak için aşağıdaki butona basmalısınız.
+                      </div>
+                      <button
+                        onClick={completeRegistration}
+                        disabled={testPushLoading}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/25 cursor-pointer"
+                      >
+                        {testPushLoading ? (
+                          <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        ) : (
+                          <BellRing className="w-4 h-4 animate-pulse" />
+                        )}
+                        Bildirim Kaydını Tamamla
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Send Test Notification Button */}
+                      <button
+                        onClick={sendTestNotification}
+                        disabled={testPushLoading}
+                        className="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100/80 text-pink-600 border border-pink-200/50 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
+                      >
+                        {testPushLoading ? (
+                          <span className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin" />
+                        ) : (
+                          <Bell className="w-4 h-4" />
+                        )}
+                        Test Bildirimi Gönder
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Test Notification Result Alert */}
+                {testPushResult && (
+                  <div className={`p-4 rounded-2xl text-xs flex gap-2 border ${
+                    testPushResult.success 
+                      ? 'bg-pink-50 text-pink-700 border-pink-200/40' 
+                      : 'bg-red-50 text-red-700 border-red-200/40'
+                  }`}>
+                    <Info className="w-4 h-4 shrink-0 text-pink-500" />
+                    <p>{testPushResult.message}</p>
+                  </div>
+                )}
+
+                {/* Subscription Key Debug Card */}
+                {subscriptionId && (
+                  <div className="bg-pink-50/40 border border-pink-100 rounded-2xl p-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-zinc-500">
+                      <span>OneSignal Aygıt Kimliği:</span>
+                      <button
+                        onClick={() => copyToClipboard(subscriptionId)}
+                        className="hover:text-pink-600 p-1 rounded transition-colors text-zinc-400"
+                        title="Kimliği Kopyala"
+                      >
+                        {copied ? 'Kopyalandı!' : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <div className="font-mono text-pink-700 break-all select-all bg-white/70 p-2.5 rounded-xl border border-pink-100/80 leading-normal">
+                      {subscriptionId}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
