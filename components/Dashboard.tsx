@@ -15,7 +15,13 @@ import {
   Volume2,
   VolumeX,
   RefreshCw,
-  Info
+  Info,
+  Calendar,
+  Clock,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  BellRing
 } from 'lucide-react';
 
 interface FileAttachment {
@@ -48,6 +54,160 @@ const HelloKittyBow = () => (
     <circle cx="50" cy="40" r="11" fill="#ff4b6c" stroke="#1a1a1a" strokeWidth="4.5" />
   </svg>
 );
+
+const TARGETS = {
+  yazili: new Date('2026-07-18T09:30:00+03:00'),
+  esinaV: new Date('2026-07-01T09:00:00+03:00')
+};
+const START_DATE = new Date('2026-05-15T00:00:00+03:00');
+
+function calculateTimeLeft(targetDate: Date) {
+  const now = new Date();
+  const diff = targetDate.getTime() - now.getTime();
+  
+  if (diff <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, completed: true };
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / 1000 / 60) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  return { days, hours, minutes, seconds, completed: false };
+}
+
+function CountdownTimer() {
+  const [activeTab, setActiveTab] = useState<'yazili' | 'esinaV'>('yazili');
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, completed: false });
+  const [showTips, setShowTips] = useState(false);
+
+  useEffect(() => {
+    const targetDate = TARGETS[activeTab];
+    
+    // Initial calculation
+    setTimeLeft(calculateTimeLeft(targetDate));
+
+    const interval = setInterval(() => {
+      setTimeLeft(calculateTimeLeft(targetDate));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  const targetDate = TARGETS[activeTab];
+  const now = new Date();
+  const total = targetDate.getTime() - START_DATE.getTime();
+  const remaining = targetDate.getTime() - now.getTime();
+  const progressPercent = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
+
+  return (
+    <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-5 backdrop-blur-md shadow-xl shadow-pink-100/40">
+      <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1.5">
+        <Clock className="w-3.5 h-3.5 text-pink-400" />
+        <span>SINAV GERİ SAYIMI</span>
+        <span>⏳</span>
+      </h2>
+
+      {/* Tabs */}
+      <div className="flex bg-pink-50/50 p-1.5 rounded-2xl border border-pink-100/80">
+        <button
+          onClick={() => setActiveTab('yazili')}
+          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'yazili'
+              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+              : 'text-zinc-650 hover:text-pink-600'
+          }`}
+        >
+          Yazılı Sınav (18 Tem)
+        </button>
+        <button
+          onClick={() => setActiveTab('esinaV')}
+          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'esinaV'
+              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+              : 'text-zinc-650 hover:text-pink-600'
+          }`}
+        >
+          e-Sınav (01 Tem)
+        </button>
+      </div>
+
+      {/* Timer display */}
+      {timeLeft.completed ? (
+        <div className="text-center py-4 text-pink-600 font-bold text-sm bg-pink-50/30 rounded-2xl border border-pink-100/50 flex flex-col items-center gap-1.5 animate-pulse">
+          <Sparkles className="w-6 h-6 text-pink-500" />
+          <span>Sınav Zamanı Geldi! Başarılar Dileriz 🌸</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-2 text-center">
+          {[
+            { label: 'Gün', value: timeLeft.days },
+            { label: 'Saat', value: timeLeft.hours },
+            { label: 'Dak', value: timeLeft.minutes },
+            { label: 'Sn', value: timeLeft.seconds }
+          ].map((unit, i) => (
+            <div key={i} className="bg-pink-50/40 border border-pink-100/80 p-2.5 rounded-2xl flex flex-col items-center shadow-sm">
+              <span className="text-xl sm:text-2xl font-black text-pink-700 leading-tight">
+                {unit.value.toString().padStart(2, '0')}
+              </span>
+              <span className="text-[10px] text-zinc-500 font-semibold">{unit.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      <div className="space-y-1.5">
+        <div className="flex justify-between text-[11px] text-zinc-500 font-medium">
+          <span>Dönem Hazırlığı</span>
+          <span className="font-bold text-pink-600">{Math.round(progressPercent)}%</span>
+        </div>
+        <div className="w-full h-3 bg-pink-100/40 rounded-full border border-pink-100 overflow-hidden shadow-inner p-[1px]">
+          <div
+            className="h-full bg-gradient-to-r from-pink-400 to-rose-500 rounded-full transition-all duration-1000 shadow-md"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Tips Accordion */}
+      <div className="border-t border-pink-100/60 pt-4 space-y-2">
+        <button
+          onClick={() => setShowTips(!showTips)}
+          className="w-full flex items-center justify-between text-xs font-bold text-pink-650 hover:text-pink-700 select-none cursor-pointer"
+        >
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
+            Önemli Sınav İpuçları & Kılavuz
+          </span>
+          {showTips ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+
+        {showTips && (
+          <div className="bg-pink-50/30 border border-pink-100/50 p-4 rounded-2xl text-xs text-zinc-650 space-y-2.5 animate-fade-in leading-relaxed">
+            <div className="flex items-start gap-2">
+              <span className="text-pink-500 shrink-0">🌸</span>
+              <p><strong>Fotoğraflı Giriş Belgesi:</strong> Belgesinde fotoğraf bulunmayan öğrenciler sınava alınmaz. Halk Eğitim'den fotoğrafınızı sisteme yükletin.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-pink-500 shrink-0">🌸</span>
+              <p><strong>Geçerli Kimlik Kartı:</strong> Sınav günü fotoğraflı kimlik veya pasaportunuzu yanınızda getirmeyi unutmayın.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-pink-500 shrink-0">🌸</span>
+              <p><strong>e-Sınav Randevusu:</strong> 9 ve daha az sayıda ders seçtiyseniz e-Sınav randevusu almak zorundasınız.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-pink-500 shrink-0">🌸</span>
+              <p><strong>Sınav Giriş Kuralları:</strong> Sınav salonunda en geç 30 dakika önce hazır bulunmanız gerekmektedir.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard({
   initialAnnouncement,
@@ -202,7 +362,7 @@ export default function Dashboard({
       const currentPermission = OneSignal.Notifications.permission;
       
       // Get device push subscription ID
-      const subscription = OneSignal.User.PushSubscription;
+      const subscription = OneSignal.User?.PushSubscription;
       const hasSubscription = !!(subscription && subscription.id);
 
       // Check if permission is denied at the browser level, or granted/subscribed
@@ -218,6 +378,18 @@ export default function Dashboard({
       }
 
       setPermission(permissionState);
+
+      // Force explicit OneSignal subscription registration if permission is granted but ID is missing
+      if (permissionState === 'granted' && !hasSubscription) {
+        console.log('OneSignal: Permission is granted, but subscription ID is missing. Triggering explicit opt-in...');
+        try {
+          if (OneSignal.User && OneSignal.User.PushSubscription) {
+            await OneSignal.User.PushSubscription.optIn();
+          }
+        } catch (optError) {
+          console.error('OneSignal optIn error:', optError);
+        }
+      }
 
       if (subscription && subscription.id) {
         setSubscriptionId(subscription.id);
@@ -336,6 +508,74 @@ export default function Dashboard({
     } catch (err) {
       console.error('Error enabling notifications:', err);
     }
+  };
+
+  // 3.5. Complete registration (especially for iOS Safari standalone PWA user gesture bypass)
+  const completeRegistration = async () => {
+    const OneSignal = (window as any).OneSignal;
+    if (!OneSignal) {
+      setTestPushResult({
+        success: false,
+        message: 'OneSignal yüklenirken hata oluştu. Lütfen sayfayı yenileyin veya reklam engelleyicinizi kapatın.'
+      });
+      return;
+    }
+
+    setTestPushLoading(true);
+    setTestPushResult(null);
+
+    OneSignal.push(async () => {
+      try {
+        console.log('User gesture: triggering optIn and requestPermission to resolve iOS registration...');
+        
+        // 1. Request permission again (safely, since already granted, this ensures push subscription generation is kicked off in iOS Safari)
+        await OneSignal.Notifications.requestPermission();
+        
+        // 2. Explicitly opt in
+        if (OneSignal.User && OneSignal.User.PushSubscription) {
+          await OneSignal.User.PushSubscription.optIn();
+        }
+        
+        // Wait a short moment for the subscription to register
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        // 3. Update the push status to read the new subscription ID
+        await updatePushStatus();
+        
+        // Get the latest status
+        const sub = OneSignal.User?.PushSubscription;
+        if (sub && sub.id) {
+          setTestPushResult({
+            success: true,
+            message: 'Tebrikler! Bildirim kaydı başarıyla tamamlandı. Aygıt kimliği alındı. Artık test bildirimi gönderebilirsiniz.'
+          });
+        } else {
+          // If still not registered, let's try one more fallback to see if we can read it from SDK
+          const currentId = OneSignal.User?.PushSubscription?.id;
+          if (currentId) {
+            setSubscriptionId(currentId);
+            localStorage.setItem('aol_subscription_id', currentId);
+            setTestPushResult({
+              success: true,
+              message: 'Bildirim kaydı tamamlandı! Aygıt kimliği güncellendi.'
+            });
+          } else {
+            setTestPushResult({
+              success: false,
+              message: 'Aygıt kimliği henüz üretilemedi. iOS bazen arka planda kaydı geciktirebilir. Lütfen birkaç saniye sonra "Bildirim Kaydını Tamamla" veya "Test Bildirimi Gönder" butonuna tekrar basarak veya sayfayı yenileyerek deneyin.'
+            });
+          }
+        }
+      } catch (err: any) {
+        console.error('Error in completeRegistration:', err);
+        setTestPushResult({
+          success: false,
+          message: `Kayıt tamamlanamadı: ${err.message || err}`
+        });
+      } finally {
+        setTestPushLoading(false);
+      }
+    });
   };
 
   // 4. Mute / Sessize Al Toggle
@@ -522,11 +762,17 @@ export default function Dashboard({
             <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
               <div className={`p-4 rounded-full ${
                 permission === 'granted'
-                  ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
+                  ? (subscriptionId 
+                      ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
+                      : 'bg-amber-100 text-amber-600 border border-amber-200 shadow-md shadow-amber-100/50 animate-pulse')
                   : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
               }`}>
                 {permission === 'granted' ? (
-                  <Bell className="w-8 h-8 animate-bounce" />
+                  subscriptionId ? (
+                    <Bell className="w-8 h-8 animate-bounce" />
+                  ) : (
+                    <BellOff className="w-8 h-8 text-amber-500" />
+                  )
                 ) : (
                   <BellOff className="w-8 h-8" />
                 )}
@@ -535,7 +781,7 @@ export default function Dashboard({
                 <div className="text-xs text-zinc-500">Durum</div>
                 <div className="text-sm font-bold text-pink-650">
                   {permission === 'granted'
-                    ? 'Bildirimler Aktif'
+                    ? (subscriptionId ? 'Bildirimler Aktif' : 'Kurulum Gerekli ⚠️')
                     : permission === 'denied'
                     ? 'Engellendi'
                     : 'İzin Bekleniyor'}
@@ -553,6 +799,24 @@ export default function Dashboard({
                   <Bell className="w-4 h-4" />
                   Bildirimleri Aç
                 </button>
+              ) : !subscriptionId ? (
+                <div className="space-y-2.5">
+                  <div className="p-3 bg-amber-50/60 border border-amber-200/30 rounded-2xl text-[11px] text-amber-700 leading-relaxed">
+                    <strong>⚠️ Aygıt Kaydı Tamamlanamadı:</strong> İzinler aktif görünmesine rağmen cihazınız sisteme kaydedilemedi. iOS/Safari Web Push kuralları gereği, kaydı tamamlamak için aşağıdaki butona basmalısınız.
+                  </div>
+                  <button
+                    onClick={completeRegistration}
+                    disabled={testPushLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/25 cursor-pointer"
+                  >
+                    {testPushLoading ? (
+                      <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    ) : (
+                      <BellRing className="w-4 h-4 animate-pulse" />
+                    )}
+                    Bildirim Kaydını Tamamla
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {/* Send Test Notification Button */}
@@ -603,6 +867,7 @@ export default function Dashboard({
               </div>
             )}
           </div>
+          <CountdownTimer />
         </div>
 
         {/* Right Column: Latest Announcement Details */}

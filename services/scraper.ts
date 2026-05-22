@@ -44,13 +44,39 @@ async function getLatestAnnouncementUrl(): Promise<string> {
  */
 function highlightImportantTerms(text: string): string {
   // Escape HTML tags to prevent XSS
-  let escaped = text
+  let html = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
+  // Class for large bold headings and date ranges
+  const highlightClass = "font-black text-pink-700 text-[16px] sm:text-[18px] bg-pink-100/60 px-1.5 py-0.5 rounded border border-pink-200/50 shadow-sm underline decoration-pink-300 decoration-2 underline-offset-4";
+  
+  // Class for regular key terms
+  const termClass = "font-extrabold text-pink-650 text-[15px] sm:text-[16px] underline decoration-pink-300 decoration-2 underline-offset-4";
+
+  // 1. Highlight specific header + date ranges:
+  // E.g., "Kayıt Yenileme Tarihleri: 15 Mayıs - 08 Haziran 2026"
+  // E.g., "e-Sınav randevu işlemleri: 11 Haziran – 22 Haziran 2026"
+  // E.g., "Sınav Tarihleri:"
+  const headerDateRegex = /(Kayıt\s+Yenileme\s+Tarihleri|e-Sınav\s+randevu\s+işlemleri|Ders\s+Seçimi\s+İşlemleri|Sınav\s+Merkezi\s+İşlemleri|Sınav\s+Tarihleri)\s*:\s*(\d{1,2}\s+[a-zA-ZçıöşüğÇIÖŞÜĞ]+\s*(?:[-–]\s*\d{1,2}\s+[a-zA-ZçıöşüğÇIÖŞÜĞ]+)?\s+\d{4}|\d{1,2}[./-]\d{1,2}[./-]\d{4})?/gi;
+  html = html.replace(headerDateRegex, (match, prefix, date) => {
+    if (date) {
+      return `<span class="${highlightClass}">${prefix}: ${date}</span>`;
+    }
+    return `<span class="${highlightClass}">${prefix}:</span>`;
+  });
+
+  // 2. Highlight other specific exam date patterns:
+  // E.g. "18-19 Temmuz 2026" (written exam) or "01 Temmuz - 03 Ağustos 2026" (e-Exam) or "15 Mayıs - 08 Haziran 2026"
+  const examDatesRegex = /(\b\d{1,2}(?:[-–]\d{1,2})?\s+(?:Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+\d{4}\b)/gi;
+  html = html.replace(examDatesRegex, (match) => {
+    return `<span class="${highlightClass}">${match}</span>`;
+  });
+
+  // 3. Match individual key terms if they are not already part of an HTML tag
   const terms = [
     'Kayıt Yenileme Tarihleri',
     'Kayıt Yenileme Tarihi',
@@ -64,22 +90,21 @@ function highlightImportantTerms(text: string): string {
     'Sınav Giriş Belgesi',
     'Sınav Sonuçları',
     'Mazeret Sınavı',
-    'Ek Sınav'
+    'Ek Sınav',
+    'Sınav Merkezi'
   ];
 
-  // Sort terms by length descending to match longer phrases first
+  // Sort by length desc to match longest first
   terms.sort((a, b) => b.length - a.length);
 
   for (const term of terms) {
     const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp(`(${escapedTerm})`, 'gi');
-    escaped = escaped.replace(
-      regex,
-      '<strong class="font-extrabold text-pink-650 text-[15px] sm:text-[16px] underline decoration-pink-300 decoration-2 underline-offset-4">$1</strong>'
-    );
+    // Negative lookahead/lookbehind prevents replacement inside tag parameters (like class names)
+    const regex = new RegExp(`(?<!<[^>]*)(${escapedTerm})(?![^<]*>)`, 'gi');
+    html = html.replace(regex, `<strong class="${termClass}">$1</strong>`);
   }
 
-  return escaped;
+  return html;
 }
 
 /**
