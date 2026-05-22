@@ -76,16 +76,51 @@ export default function Dashboard({
   // Notification Copy Alert State
   const [copied, setCopied] = useState(false);
 
-  // Registration Confirm State
-  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+  // Confirmation state (for registration, course selection, or exam appointment)
+  const [isConfirmed, setIsConfirmed] = useState<boolean | null>(null);
+  const [announcementType, setAnnouncementType] = useState<'registration' | 'course_selection' | 'exam_appointment' | 'none'>('none');
 
-  // Detect registration status when announcement changes
+  // Detect announcement type and corresponding key states
   useEffect(() => {
-    if (typeof window !== 'undefined' && announcement?.id) {
-      const saved = localStorage.getItem(`aol_registered_id_${announcement.id}`) === 'true';
-      setIsRegistered(saved);
+    if (!announcement) return;
+    const title = announcement.title.toLowerCase();
+    const desc = announcement.description.toLowerCase();
+
+    let type: 'registration' | 'course_selection' | 'exam_appointment' | 'none' = 'none';
+
+    if (title.includes('e-sınav randevu') || desc.includes('e-sınav randevu') ||
+        title.includes('e-sinav randevu') || desc.includes('e-sinav randevu') ||
+        title.includes('sınav randevusu') || desc.includes('sınav randevusu') ||
+        title.includes('sinav randevusu') || desc.includes('sinav randevusu')) {
+      type = 'exam_appointment';
+    } else if (title.includes('ders seçimi') || desc.includes('ders seçimi') ||
+               title.includes('ders secimi') || desc.includes('ders secimi') ||
+               title.includes('ders seçme') || desc.includes('ders seçme') ||
+               title.includes('ders secme') || desc.includes('ders secme')) {
+      type = 'course_selection';
+    } else if (title.includes('kayıt') || desc.includes('kayıt') ||
+               title.includes('kayit') || desc.includes('kayit')) {
+      type = 'registration';
+    }
+
+    setAnnouncementType(type);
+
+    if (typeof window !== 'undefined' && announcement?.id && type !== 'none') {
+      let storageKey = '';
+      if (type === 'registration') storageKey = `aol_registered_id_${announcement.id}`;
+      else if (type === 'course_selection') storageKey = `aol_course_selected_id_${announcement.id}`;
+      else if (type === 'exam_appointment') storageKey = `aol_appointment_taken_id_${announcement.id}`;
+
+      if (storageKey) {
+        setIsConfirmed(localStorage.getItem(storageKey) === 'true');
+      } else {
+        setIsConfirmed(null);
+      }
+    } else {
+      setIsConfirmed(null);
     }
   }, [announcement]);
+
 
   // 1. Detect platform and PWA standalone status
   useEffect(() => {
@@ -243,27 +278,47 @@ export default function Dashboard({
     });
   };
 
-  const markAsRegistered = async () => {
-    if (!announcement?.id) return;
-    try {
-      localStorage.setItem(`aol_registered_id_${announcement.id}`, 'true');
-      setIsRegistered(true);
-      await addOneSignalTag('kayit_yenilendi_id', announcement.id);
-    } catch (err) {
-      console.error('Failed to mark as registered:', err);
+  const getKeysForType = (type: 'registration' | 'course_selection' | 'exam_appointment' | 'none') => {
+    switch (type) {
+      case 'registration':
+        return { tagKey: 'kayit_yenilendi_id', storageKey: `aol_registered_id_${announcement.id}` };
+      case 'course_selection':
+        return { tagKey: 'ders_secildi_id', storageKey: `aol_course_selected_id_${announcement.id}` };
+      case 'exam_appointment':
+        return { tagKey: 'randevu_alindi_id', storageKey: `aol_appointment_taken_id_${announcement.id}` };
+      default:
+        return { tagKey: '', storageKey: '' };
     }
   };
 
-  const markAsUnregistered = async () => {
-    if (!announcement?.id) return;
+  const markAsConfirmed = async () => {
+    if (!announcement?.id || announcementType === 'none') return;
+    const keys = getKeysForType(announcementType);
+    if (!keys.storageKey || !keys.tagKey) return;
+    
     try {
-      localStorage.removeItem(`aol_registered_id_${announcement.id}`);
-      setIsRegistered(false);
-      await removeOneSignalTag('kayit_yenilendi_id');
+      localStorage.setItem(keys.storageKey, 'true');
+      setIsConfirmed(true);
+      await addOneSignalTag(keys.tagKey, announcement.id);
     } catch (err) {
-      console.error('Failed to mark as unregistered:', err);
+      console.error('Failed to mark as confirmed:', err);
     }
   };
+
+  const markAsUnconfirmed = async () => {
+    if (!announcement?.id || announcementType === 'none') return;
+    const keys = getKeysForType(announcementType);
+    if (!keys.storageKey || !keys.tagKey) return;
+    
+    try {
+      localStorage.removeItem(keys.storageKey);
+      setIsConfirmed(false);
+      await removeOneSignalTag(keys.tagKey);
+    } catch (err) {
+      console.error('Failed to mark as unconfirmed:', err);
+    }
+  };
+
 
 
   // 3. Trigger permission request
@@ -553,12 +608,39 @@ export default function Dashboard({
         {/* Right Column: Latest Announcement Details */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* Registration Confirm Banner */}
+          {/* Action Confirm Banner (Registration, Course Selection, or Exam Appointment) */}
           {(() => {
-            const isRegAnnouncement = 
-              /kayıt|kayit/i.test(announcement.title) || 
-              /kayıt|kayit/i.test(announcement.description);
-            if (!isRegAnnouncement) return null;
+            if (announcementType === 'none') return null;
+
+            let cardTitle = '';
+            let cardQuestion = '';
+            let buttonText = '';
+            let successText = '';
+            let revertText = '';
+
+            switch (announcementType) {
+              case 'registration':
+                cardTitle = 'Kayıt Yenileme Durum Takibi ⏳';
+                cardQuestion = 'Bu duyuru kayıt yenileme işlemleri ile ilgilidir. Sınavlara katılabilmek için kaydınızı yenilediniz mi?';
+                buttonText = 'Evet, Kayıt Yeniledim 💖';
+                successText = '🌸 Tebrikler! Kayıt yenilediğinizi onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
+                revertText = 'Geri Al (Kayıt Yenilemedim)';
+                break;
+              case 'course_selection':
+                cardTitle = 'Ders Seçimi Durum Takibi 📚';
+                cardQuestion = 'Bu duyuru ders seçme işlemleri ile ilgilidir. Sınavlara gireceğiniz dersleri seçtiniz mi?';
+                buttonText = 'Evet, Ders Seçimini Yaptım 💖';
+                successText = '🌸 Harika! Ders seçiminizi tamamladığınızı onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
+                revertText = 'Geri Al (Ders Seçmedim)';
+                break;
+              case 'exam_appointment':
+                cardTitle = 'e-Sınav Randevu Durum Takibi 🗓️';
+                cardQuestion = 'Bu duyuru e-Sınav randevuları ile ilgilidir. Sınav merkezinizi ve saatinizi belirleyip randevunuzu aldınız mı?';
+                buttonText = 'Evet, Randevu Aldım 💖';
+                successText = '🌸 Süper! e-Sınav randevunuzu aldığınızı onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
+                revertText = 'Geri Al (Randevu Almadım)';
+                break;
+            }
 
             return (
               <div className="relative overflow-hidden bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200/70 p-5 rounded-3xl shadow-lg shadow-pink-150/40 text-zinc-700 animate-fade-in space-y-3">
@@ -566,37 +648,37 @@ export default function Dashboard({
                 <div className="absolute top-0 right-0 w-24 h-24 bg-pink-100 rounded-bl-full -z-10 opacity-60 pointer-events-none" />
                 <div className="flex gap-4 items-start">
                   <div className="p-3 bg-pink-100 text-pink-600 rounded-2xl border border-pink-200/30 shrink-0">
-                    <CheckCircle2 className={`w-6 h-6 transition-colors duration-300 ${isRegistered ? 'text-pink-600' : 'text-zinc-400'}`} />
+                    <CheckCircle2 className={`w-6 h-6 transition-colors duration-300 ${isConfirmed ? 'text-pink-600' : 'text-zinc-400'}`} />
                   </div>
                   <div className="space-y-2.5 w-full">
                     <div>
                       <h4 className="text-sm font-bold text-pink-600 flex items-center gap-1.5">
-                        <span>Kayıt Yenileme Durum Takibi ⏳</span>
+                        <span>{cardTitle}</span>
                       </h4>
                       <p className="text-xs text-zinc-650 mt-1 leading-relaxed">
-                        Bu duyuru kayıt işlemleri ile ilgilidir. Sınavlara girebilmek ve ders seçimi yapabilmek için kaydınızı yenilediniz mi?
+                        {cardQuestion}
                       </p>
                     </div>
 
-                    {isRegistered ? (
+                    {isConfirmed ? (
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 p-3 rounded-2xl border border-pink-200/40">
                         <span className="text-xs text-pink-600 font-semibold flex items-center gap-1.5">
-                          <span>🌸 Tebrikler! Kayıt yenilediğinizi onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.</span>
+                          <span>{successText}</span>
                         </span>
                         <button
-                          onClick={markAsUnregistered}
+                          onClick={markAsUnconfirmed}
                           className="text-[11px] font-semibold text-zinc-500 hover:text-pink-650 underline shrink-0 cursor-pointer text-left transition-colors"
                         >
-                          Geri Al (Kayıt Yenilemedim)
+                          {revertText}
                         </button>
                       </div>
                     ) : (
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         <button
-                          onClick={markAsRegistered}
+                          onClick={markAsConfirmed}
                           className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-semibold text-xs py-2 px-5 rounded-xl shadow-md shadow-pink-500/15 cursor-pointer"
                         >
-                          Evet, Kayıt Yeniledim 💖
+                          {buttonText}
                         </button>
                         <span className="text-[11px] text-zinc-555 italic">
                           * 1 hafta, 3 gün ve 1 gün kala bildirim uyarısı almak için hayır seçeneğine tıklamanıza gerek yoktur.
@@ -608,6 +690,7 @@ export default function Dashboard({
               </div>
             );
           })()}
+
 
           <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-6 backdrop-blur-md shadow-xl shadow-pink-100/40">
             

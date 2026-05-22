@@ -164,10 +164,11 @@ export async function sendTargetedNotification(
 }
 
 /**
- * Sends a reminder push notification to users who haven't completed registration.
- * Excludes users who have the tag `kayit_yenilendi_id` set to the current announcement ID.
+ * Sends a reminder push notification to users who haven't completed a certain process.
+ * Excludes users who have the specified tag set to the current announcement ID.
  */
 export async function sendReminderNotification(
+  tagKey: string,
   announcementId: string,
   title: string,
   message: string,
@@ -188,17 +189,17 @@ export async function sendReminderNotification(
   try {
     const payload = {
       app_id: config.appId,
-      // Target users who do NOT have the tag kayit_yenilendi_id equal to the announcementId
+      // Target users who do NOT have the specified tag equal to the announcementId
       filters: [
         {
           field: 'tag',
-          key: 'kayit_yenilendi_id',
+          key: tagKey,
           relation: '!=',
           value: announcementId
         }
       ],
       headings: {
-        en: 'Açık Lise Kayıt Uyarısı',
+        en: 'Açık Lise Duyuru Uyarısı',
         tr: title
       },
       contents: {
@@ -244,4 +245,5 @@ export async function sendReminderNotification(
     };
   }
 }
+
 

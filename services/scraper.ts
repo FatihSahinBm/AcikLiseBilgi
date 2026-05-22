@@ -314,3 +314,40 @@ export function isRegistrationAnnouncement(title: string, description: string): 
   );
 }
 
+export type AnnouncementType = 'registration' | 'course_selection' | 'exam_appointment' | 'none';
+
+/**
+ * Classifies the announcement title and description into specific tracking categories.
+ */
+export function detectAnnouncementType(title: string, description: string): AnnouncementType {
+  const combined = `${title} ${description}`.toLowerCase();
+  
+  if (combined.includes('e-sınav randevu') || 
+      combined.includes('e-sinav randevu') || 
+      combined.includes('sınav randevusu') || 
+      combined.includes('sinav randevusu')) {
+    return 'exam_appointment';
+  }
+  
+  if (combined.includes('ders seçimi') || 
+      combined.includes('ders secimi') || 
+      combined.includes('ders seçme') || 
+      combined.includes('ders secme')) {
+    return 'course_selection';
+  }
+  
+  if (combined.includes('kayıt yenileme') || 
+      combined.includes('yeni kayıt') || 
+      combined.includes('ilk kayıt') || 
+      combined.includes('kayit yenileme') ||
+      combined.includes('kayıt yenıleme') ||
+      combined.includes('kayit yenıleme') ||
+      combined.includes('kayit islemleri') ||
+      combined.includes('kayıt işlemleri')) {
+    return 'registration';
+  }
+  
+  return 'none';
+}
+
+

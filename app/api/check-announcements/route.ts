@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeAnnouncement, extractDeadline, isRegistrationAnnouncement } from '@/services/scraper';
+import { scrapeAnnouncement, extractDeadline, detectAnnouncementType } from '@/services/scraper';
 import { redis } from '@/lib/redis';
 import { sendBroadcastNotification, sendReminderNotification } from '@/services/onesignal';
 
@@ -73,14 +73,14 @@ export async function GET(request: NextRequest) {
       console.log('No new announcement detected. ID matched:', currentAnnouncement.id);
     }
 
-    // 5. Registration Reminders Logic (7 days, 3 days, 1 day remaining)
-    const isReg = isRegistrationAnnouncement(currentAnnouncement.title, currentAnnouncement.description);
+    // 5. Registration/Course Selection/e-Exam Reminders Logic (7 days, 3 days, 1 day remaining)
+    const announcementType = detectAnnouncementType(currentAnnouncement.title, currentAnnouncement.description);
     const deadline = extractDeadline(currentAnnouncement.title, currentAnnouncement.description);
     let reminderSent = false;
     let reminderDaysRemaining: number | null = null;
     let reminderResult: any = null;
 
-    if (isReg && deadline) {
+    if (announcementType !== 'none' && deadline) {
       // Calculate remaining days in Turkey timezone
       const trDateStr = new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' });
       const nowTR = new Date(trDateStr);
@@ -91,32 +91,54 @@ export async function GET(request: NextRequest) {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
       reminderDaysRemaining = diffDays;
-      console.log(`Registration announcement detected. Deadline: ${deadlineDate.toISOString()}, days remaining: ${diffDays}`);
+      console.log(`Announcement type: ${announcementType}, Deadline: ${deadlineDate.toISOString()}, days remaining: ${diffDays}`);
 
       if (diffDays === 7 || diffDays === 3 || diffDays === 1) {
-        const reminderKey = `aol_reminder_sent:${currentAnnouncement.id}:${diffDays}d`;
+        const reminderKey = `aol_reminder_sent:${announcementType}:${currentAnnouncement.id}:${diffDays}d`;
         const alreadySent = await redis.get<boolean>(reminderKey);
 
         if (!alreadySent) {
-          console.log(`Sending ${diffDays}-day registration reminder for announcement ${currentAnnouncement.id}`);
+          console.log(`Sending ${diffDays}-day reminder for ${announcementType} (announcement ${currentAnnouncement.id})`);
           let dayText = `${diffDays} gün`;
           if (diffDays === 7) dayText = '1 hafta';
           else if (diffDays === 1) dayText = 'son 1 gün';
 
-          const reminderTitle = `Kayıt yeniledin mi? 🎀`;
-          const reminderBody = `Kayıt yenileme döneminin bitmesine ${dayText} kaldı! Sınavlara katılabilmek için kaydınızı yenilediniz mi?`;
+          let reminderTitle = '';
+          let reminderBody = '';
+          let tagKey = '';
 
-          reminderResult = await sendReminderNotification(
-            currentAnnouncement.id,
-            reminderTitle,
-            reminderBody,
-            currentAnnouncement.link
-          );
+          switch (announcementType) {
+            case 'registration':
+              tagKey = 'kayit_yenilendi_id';
+              reminderTitle = `Kayıt yeniledin mi? 🎀`;
+              reminderBody = `Kayıt yenileme döneminin bitmesine ${dayText} kaldı! Sınavlara katılabilmek için kaydınızı yenilediniz mi?`;
+              break;
+            case 'course_selection':
+              tagKey = 'ders_secildi_id';
+              reminderTitle = `Ders seçimini yaptın mı? 📚`;
+              reminderBody = `Ders seçimi döneminin bitmesine ${dayText} kaldı! Sınavlara gireceğiniz dersleri seçtiniz mi?`;
+              break;
+            case 'exam_appointment':
+              tagKey = 'randevu_alindi_id';
+              reminderTitle = `e-Sınav randevunu aldın mı? 🗓️`;
+              reminderBody = `e-Sınav randevusu alma süresinin bitmesine ${dayText} kaldı! Sınav merkezinizi ve saatinizi belirlediniz mi?`;
+              break;
+          }
 
-          if (reminderResult.success) {
-            reminderSent = true;
-            // Mark as sent in Redis with 10 days expiry
-            await redis.set(reminderKey, true, { ex: 10 * 24 * 60 * 60 });
+          if (tagKey) {
+            reminderResult = await sendReminderNotification(
+              tagKey,
+              currentAnnouncement.id,
+              reminderTitle,
+              reminderBody,
+              currentAnnouncement.link
+            );
+
+            if (reminderResult.success) {
+              reminderSent = true;
+              // Mark as sent in Redis with 10 days expiry
+              await redis.set(reminderKey, true, { ex: 10 * 24 * 60 * 60 });
+            }
           }
         } else {
           console.log(`Reminder already sent for ${diffDays} days key: ${reminderKey}`);
@@ -133,7 +155,7 @@ export async function GET(request: NextRequest) {
       announcement: currentAnnouncement,
       previousId: lastStored?.id || null,
       pushResult,
-      isRegistration: isReg,
+      announcementType,
       registrationDeadline: deadline ? deadline.toISOString() : null,
       reminderDaysRemaining,
       reminderSent,
@@ -147,4 +169,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
