@@ -76,6 +76,17 @@ export default function Dashboard({
   // Notification Copy Alert State
   const [copied, setCopied] = useState(false);
 
+  // Registration Confirm State
+  const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
+
+  // Detect registration status when announcement changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && announcement?.id) {
+      const saved = localStorage.getItem(`aol_registered_id_${announcement.id}`) === 'true';
+      setIsRegistered(saved);
+    }
+  }, [announcement]);
+
   // 1. Detect platform and PWA standalone status
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -175,16 +186,85 @@ export default function Dashboard({
 
       if (subscription && subscription.id) {
         setSubscriptionId(subscription.id);
+        localStorage.setItem('aol_subscription_id', subscription.id);
         
         // Synced local state with actual optOut status in OneSignal
         const optOutStatus = subscription.optedOut;
         setIsMuted(optOutStatus);
         localStorage.setItem('aol_push_muted', optOutStatus.toString());
       } else {
-        setSubscriptionId('');
+        // Fallback to cached device subscription ID on iOS/Safari state loss
+        const cachedId = localStorage.getItem('aol_subscription_id');
+        if (cachedId && (permissionState === 'granted' || (typeof window !== 'undefined' && window.Notification?.permission === 'granted'))) {
+          setSubscriptionId(cachedId);
+        } else {
+          setSubscriptionId('');
+        }
       }
     });
   };
+
+  // Helper functions to manage OneSignal tags in a backward compatible way
+  const addOneSignalTag = async (key: string, value: string) => {
+    const OneSignal = (window as any).OneSignal;
+    if (!OneSignal) return;
+
+    OneSignal.push(async () => {
+      try {
+        if (OneSignal.User && typeof OneSignal.User.addTag === 'function') {
+          await OneSignal.User.addTag(key, value);
+          console.log(`OneSignal tag added (v16): ${key} = ${value}`);
+        } else if (typeof OneSignal.sendTag === 'function') {
+          await OneSignal.sendTag(key, value);
+          console.log(`OneSignal tag added (legacy): ${key} = ${value}`);
+        }
+      } catch (err) {
+        console.error('Error adding OneSignal tag:', err);
+      }
+    });
+  };
+
+  const removeOneSignalTag = async (key: string) => {
+    const OneSignal = (window as any).OneSignal;
+    if (!OneSignal) return;
+
+    OneSignal.push(async () => {
+      try {
+        if (OneSignal.User && typeof OneSignal.User.removeTag === 'function') {
+          await OneSignal.User.removeTag(key);
+          console.log(`OneSignal tag removed (v16): ${key}`);
+        } else if (typeof OneSignal.deleteTag === 'function') {
+          await OneSignal.deleteTag(key);
+          console.log(`OneSignal tag removed (legacy): ${key}`);
+        }
+      } catch (err) {
+        console.error('Error removing OneSignal tag:', err);
+      }
+    });
+  };
+
+  const markAsRegistered = async () => {
+    if (!announcement?.id) return;
+    try {
+      localStorage.setItem(`aol_registered_id_${announcement.id}`, 'true');
+      setIsRegistered(true);
+      await addOneSignalTag('kayit_yenilendi_id', announcement.id);
+    } catch (err) {
+      console.error('Failed to mark as registered:', err);
+    }
+  };
+
+  const markAsUnregistered = async () => {
+    if (!announcement?.id) return;
+    try {
+      localStorage.removeItem(`aol_registered_id_${announcement.id}`);
+      setIsRegistered(false);
+      await removeOneSignalTag('kayit_yenilendi_id');
+    } catch (err) {
+      console.error('Failed to mark as unregistered:', err);
+    }
+  };
+
 
   // 3. Trigger permission request
   const enableNotifications = async () => {
@@ -227,7 +307,19 @@ export default function Dashboard({
 
   // 5. Send targeted test notification to currently registered ID
   const sendTestNotification = async () => {
-    if (!subscriptionId) return;
+    let activeSubId = subscriptionId;
+    if (!activeSubId && typeof window !== 'undefined') {
+      activeSubId = localStorage.getItem('aol_subscription_id') || '';
+    }
+
+    if (!activeSubId) {
+      setTestPushResult({
+        success: false,
+        message: 'Aygıt kimliği bulunamadı. Lütfen bildirimlerin açık olduğundan emin olun.'
+      });
+      return;
+    }
+
     setTestPushLoading(true);
     setTestPushResult(null);
 
@@ -237,7 +329,7 @@ export default function Dashboard({
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ subscriptionId })
+        body: JSON.stringify({ subscriptionId: activeSubId })
       });
 
       const data = await res.json();
@@ -261,6 +353,7 @@ export default function Dashboard({
       setTestPushLoading(false);
     }
   };
+
 
   // 6. Manual force check and refresh
   const triggerManualCheck = async () => {
@@ -459,6 +552,63 @@ export default function Dashboard({
 
         {/* Right Column: Latest Announcement Details */}
         <div className="md:col-span-2 space-y-6">
+          
+          {/* Registration Confirm Banner */}
+          {(() => {
+            const isRegAnnouncement = 
+              /kayıt|kayit/i.test(announcement.title) || 
+              /kayıt|kayit/i.test(announcement.description);
+            if (!isRegAnnouncement) return null;
+
+            return (
+              <div className="relative overflow-hidden bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200/70 p-5 rounded-3xl shadow-lg shadow-pink-150/40 text-zinc-700 animate-fade-in space-y-3">
+                {/* Decorative background glow */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-pink-100 rounded-bl-full -z-10 opacity-60 pointer-events-none" />
+                <div className="flex gap-4 items-start">
+                  <div className="p-3 bg-pink-100 text-pink-600 rounded-2xl border border-pink-200/30 shrink-0">
+                    <CheckCircle2 className={`w-6 h-6 transition-colors duration-300 ${isRegistered ? 'text-pink-600' : 'text-zinc-400'}`} />
+                  </div>
+                  <div className="space-y-2.5 w-full">
+                    <div>
+                      <h4 className="text-sm font-bold text-pink-600 flex items-center gap-1.5">
+                        <span>Kayıt Yenileme Durum Takibi ⏳</span>
+                      </h4>
+                      <p className="text-xs text-zinc-650 mt-1 leading-relaxed">
+                        Bu duyuru kayıt işlemleri ile ilgilidir. Sınavlara girebilmek ve ders seçimi yapabilmek için kaydınızı yenilediniz mi?
+                      </p>
+                    </div>
+
+                    {isRegistered ? (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 p-3 rounded-2xl border border-pink-200/40">
+                        <span className="text-xs text-pink-600 font-semibold flex items-center gap-1.5">
+                          <span>🌸 Tebrikler! Kayıt yenilediğinizi onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.</span>
+                        </span>
+                        <button
+                          onClick={markAsUnregistered}
+                          className="text-[11px] font-semibold text-zinc-500 hover:text-pink-650 underline shrink-0 cursor-pointer text-left transition-colors"
+                        >
+                          Geri Al (Kayıt Yenilemedim)
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <button
+                          onClick={markAsRegistered}
+                          className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-semibold text-xs py-2 px-5 rounded-xl shadow-md shadow-pink-500/15 cursor-pointer"
+                        >
+                          Evet, Kayıt Yeniledim 💖
+                        </button>
+                        <span className="text-[11px] text-zinc-555 italic">
+                          * 1 hafta, 3 gün ve 1 gün kala bildirim uyarısı almak için hayır seçeneğine tıklamanıza gerek yoktur.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-6 backdrop-blur-md shadow-xl shadow-pink-100/40">
             
             {/* Header info */}

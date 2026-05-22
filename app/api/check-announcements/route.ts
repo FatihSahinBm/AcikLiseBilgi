@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeAnnouncement } from '@/services/scraper';
+import { scrapeAnnouncement, extractDeadline, isRegistrationAnnouncement } from '@/services/scraper';
 import { redis } from '@/lib/redis';
-import { sendBroadcastNotification } from '@/services/onesignal';
+import { sendBroadcastNotification, sendReminderNotification } from '@/services/onesignal';
 
 // Set this to allow Next.js to run as dynamic route (critical for APIs reading from external websites/Redis)
 export const dynamic = 'force-dynamic';
@@ -73,6 +73,57 @@ export async function GET(request: NextRequest) {
       console.log('No new announcement detected. ID matched:', currentAnnouncement.id);
     }
 
+    // 5. Registration Reminders Logic (7 days, 3 days, 1 day remaining)
+    const isReg = isRegistrationAnnouncement(currentAnnouncement.title, currentAnnouncement.description);
+    const deadline = extractDeadline(currentAnnouncement.title, currentAnnouncement.description);
+    let reminderSent = false;
+    let reminderDaysRemaining: number | null = null;
+    let reminderResult: any = null;
+
+    if (isReg && deadline) {
+      // Calculate remaining days in Turkey timezone
+      const trDateStr = new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' });
+      const nowTR = new Date(trDateStr);
+      const today = new Date(nowTR.getFullYear(), nowTR.getMonth(), nowTR.getDate());
+      
+      const deadlineDate = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+      const diffTime = deadlineDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      reminderDaysRemaining = diffDays;
+      console.log(`Registration announcement detected. Deadline: ${deadlineDate.toISOString()}, days remaining: ${diffDays}`);
+
+      if (diffDays === 7 || diffDays === 3 || diffDays === 1) {
+        const reminderKey = `aol_reminder_sent:${currentAnnouncement.id}:${diffDays}d`;
+        const alreadySent = await redis.get<boolean>(reminderKey);
+
+        if (!alreadySent) {
+          console.log(`Sending ${diffDays}-day registration reminder for announcement ${currentAnnouncement.id}`);
+          let dayText = `${diffDays} gün`;
+          if (diffDays === 7) dayText = '1 hafta';
+          else if (diffDays === 1) dayText = 'son 1 gün';
+
+          const reminderTitle = `Kayıt yeniledin mi? 🎀`;
+          const reminderBody = `Kayıt yenileme döneminin bitmesine ${dayText} kaldı! Sınavlara katılabilmek için kaydınızı yenilediniz mi?`;
+
+          reminderResult = await sendReminderNotification(
+            currentAnnouncement.id,
+            reminderTitle,
+            reminderBody,
+            currentAnnouncement.link
+          );
+
+          if (reminderResult.success) {
+            reminderSent = true;
+            // Mark as sent in Redis with 10 days expiry
+            await redis.set(reminderKey, true, { ex: 10 * 24 * 60 * 60 });
+          }
+        } else {
+          console.log(`Reminder already sent for ${diffDays} days key: ${reminderKey}`);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: lastCheckedTime,
@@ -81,7 +132,12 @@ export async function GET(request: NextRequest) {
       notificationSent,
       announcement: currentAnnouncement,
       previousId: lastStored?.id || null,
-      pushResult
+      pushResult,
+      isRegistration: isReg,
+      registrationDeadline: deadline ? deadline.toISOString() : null,
+      reminderDaysRemaining,
+      reminderSent,
+      reminderResult
     });
   } catch (error: any) {
     console.error('API /check-announcements Error:', error);
@@ -91,3 +147,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

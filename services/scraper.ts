@@ -234,3 +234,83 @@ export async function scrapeAnnouncement(
     throw new Error(`Scraper failed: ${error.message}`);
   }
 }
+
+/**
+ * Extracts a registration/renewal deadline date from the title or description of an announcement.
+ * Maps Turkish month names to numbers and returns the latest date found in the future (relative to 2026).
+ */
+export function extractDeadline(title: string, description: string): Date | null {
+  const combinedText = `${title} ${description}`;
+  
+  // Turkish months mapping (standard and normalized Turkish characters)
+  const turkishMonths: { [key: string]: number } = {
+    ocak: 0, subat: 1, şubat: 1, mart: 2, nisan: 3, mayis: 4, mayıs: 4,
+    haziran: 5, temmuz: 6, agustos: 7, ağustos: 7, eylul: 8, eylül: 8,
+    ekim: 9, kasim: 10, kasım: 10, aralik: 11, aralık: 11
+  };
+
+  const dates: Date[] = [];
+  
+  // 1. Match DD.MM.YYYY or DD/MM/YYYY
+  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](\d{4})\b/g;
+  let match;
+  while ((match = numericRegex.exec(combinedText)) !== null) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1; // 0-indexed
+    const year = parseInt(match[3], 10);
+    const date = new Date(year, month, day);
+    if (!isNaN(date.getTime())) {
+      dates.push(date);
+    }
+  }
+
+  // 2. Match DD MonthName YYYY (Turkish textual dates, e.g. "15 Haziran 2026")
+  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)\s+(\d{4})\b/g;
+  while ((match = textRegex.exec(combinedText)) !== null) {
+    const day = parseInt(match[1], 10);
+    const monthName = match[2].toLowerCase()
+      .replace(/ı/g, 'i')
+      .replace(/ş/g, 's')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c');
+    
+    if (turkishMonths.hasOwnProperty(monthName)) {
+      const month = turkishMonths[monthName];
+      const year = parseInt(match[3], 10);
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) {
+        dates.push(date);
+      }
+    }
+  }
+
+  if (dates.length === 0) return null;
+
+  // Filter out dates that are in the past relative to the system baseline (2026)
+  const validDates = dates.filter(d => d.getFullYear() >= 2026);
+  if (validDates.length === 0) return null;
+
+  // Sort ascending, return the latest date
+  validDates.sort((a, b) => a.getTime() - b.getTime());
+  return validDates[validDates.length - 1];
+}
+
+/**
+ * Checks if the announcement title or description contains registration/renewal terms.
+ */
+export function isRegistrationAnnouncement(title: string, description: string): boolean {
+  const combined = `${title} ${description}`.toLowerCase();
+  return (
+    combined.includes('kayıt yenileme') || 
+    combined.includes('yeni kayıt') || 
+    combined.includes('ilk kayıt') || 
+    combined.includes('kayit yenileme') ||
+    combined.includes('kayit yenıleme') ||
+    combined.includes('kayıt yenıleme') ||
+    combined.includes('kayit islemleri') ||
+    combined.includes('kayıt işlemleri')
+  );
+}
+
