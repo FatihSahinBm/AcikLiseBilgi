@@ -12,14 +12,98 @@ export interface Announcement {
 }
 
 /**
+ * Fetches the latest announcement URL from MEB's RSS feed.
+ */
+async function getLatestAnnouncementUrl(): Promise<string> {
+  const rssUrl = 'https://aol.meb.gov.tr/meb_iys_dosyalar/xml/rss_duyurular.xml';
+  try {
+    const response = await axios.get(rssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      timeout: 10000
+    });
+    
+    const $ = cheerio.load(response.data, { xmlMode: true });
+    // Find the link of the first item
+    const firstLink = $('item').first().find('link').text().trim();
+    if (firstLink) {
+      console.log('Discovered latest announcement link from RSS:', firstLink);
+      return firstLink;
+    }
+  } catch (error: any) {
+    console.error('Failed to parse RSS feed, using fallback URL:', error.message);
+  }
+  return 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481';
+}
+
+/**
+ * Highlights key terms inside the parsed announcement description.
+ */
+function highlightImportantTerms(text: string): string {
+  // Escape HTML tags to prevent XSS
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  const terms = [
+    'Kayıt Yenileme Tarihleri',
+    'Kayıt Yenileme Tarihi',
+    'Kayıt Yenileme',
+    'Kayıt Tarihleri',
+    'İlk Kayıt',
+    'Yeni Kayıt',
+    'Ders Seçimi',
+    'Sınav Tarihleri',
+    'Sınav Tarihi',
+    'Sınav Giriş Belgesi',
+    'Sınav Sonuçları',
+    'Mazeret Sınavı',
+    'Ek Sınav'
+  ];
+
+  // Sort terms by length descending to match longer phrases first
+  terms.sort((a, b) => b.length - a.length);
+
+  for (const term of terms) {
+    const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+    escaped = escaped.replace(
+      regex,
+      '<strong class="font-extrabold text-pink-650 text-[15px] sm:text-[16px] underline decoration-pink-300 decoration-2 underline-offset-4">$1</strong>'
+    );
+  }
+
+  return escaped;
+}
+
+/**
  * Scrapes the MEB AOL Important Announcement page
  * @param url The URL of the page to scrape
  */
 export async function scrapeAnnouncement(
-  url: string = 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481/tr'
+  url?: string
 ): Promise<Announcement> {
   try {
-    const response = await axios.get(url, {
+    let targetUrl = url;
+    if (!targetUrl) {
+      targetUrl = await getLatestAnnouncementUrl();
+    }
+
+    // Ensure we are targeting the Turkish version if it's a content page
+    if (targetUrl && !targetUrl.endsWith('/tr') && targetUrl.includes('/icerik/')) {
+      if (/\/\d+$/.test(targetUrl)) {
+        targetUrl = `${targetUrl}/tr`;
+      }
+    }
+
+    console.log(`Scraping target URL: ${targetUrl}`);
+    const response = await axios.get(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -116,11 +200,21 @@ export async function scrapeAnnouncement(
     });
 
     // 4. Extract Description
-    // We scrape the main text of `.content`, clean it up and take a nice excerpt.
-    const rawContentText = $('.content').text().trim().replace(/\s+/g, ' ');
-    const description = rawContentText.length > 300 
-      ? rawContentText.substring(0, 300) + '...'
-      : rawContentText || 'Açık Lise web sayfasında yeni bir duyuru güncellendi. Detaylar için uygulamayı ziyaret edin.';
+    // Clean up consecutive empty lines but keep newlines for paragraph spacing
+    let rawContentText = $('.content').text().trim();
+    rawContentText = rawContentText.replace(/\n\s*\n+/g, '\n\n').replace(/[ \t]+/g, ' ');
+
+    let description = rawContentText;
+    if (description.length > 800) {
+      description = description.substring(0, 800) + '...';
+    }
+    
+    if (!description) {
+      description = 'Açık Lise web sayfasında yeni bir duyuru güncellendi. Detaylar için uygulamayı ziyaret edin.';
+    }
+
+    // Highlight key terms and escape html
+    const highlightedDescription = highlightImportantTerms(description);
 
     // Generate unique ID based on a hash of the title and the update date
     const signature = `${title}-${updateDate}`;
@@ -129,8 +223,8 @@ export async function scrapeAnnouncement(
     return {
       id,
       title,
-      description,
-      link: url,
+      description: highlightedDescription,
+      link: targetUrl,
       publishDate,
       updateDate,
       files

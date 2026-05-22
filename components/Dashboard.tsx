@@ -373,16 +373,12 @@ export default function Dashboard({
             {/* Status Visualizer */}
             <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
               <div className={`p-4 rounded-full ${
-                permission === 'granted' && !isMuted
+                permission === 'granted'
                   ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
-                  : permission === 'granted' && isMuted
-                  ? 'bg-amber-50 text-amber-600 border border-amber-200'
                   : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
               }`}>
-                {permission === 'granted' && !isMuted ? (
+                {permission === 'granted' ? (
                   <Bell className="w-8 h-8 animate-bounce" />
-                ) : permission === 'granted' && isMuted ? (
-                  <BellOff className="w-8 h-8" />
                 ) : (
                   <BellOff className="w-8 h-8" />
                 )}
@@ -391,9 +387,7 @@ export default function Dashboard({
                 <div className="text-xs text-zinc-500">Durum</div>
                 <div className="text-sm font-bold text-pink-650">
                   {permission === 'granted'
-                    ? isMuted
-                      ? 'Sessize Alındı'
-                      : 'Bildirimler Aktif'
+                    ? 'Bildirimler Aktif'
                     : permission === 'denied'
                     ? 'Engellendi'
                     : 'İzin Bekleniyor'}
@@ -413,28 +407,6 @@ export default function Dashboard({
                 </button>
               ) : (
                 <div className="space-y-2">
-                  {/* Mute Button */}
-                  <button
-                    onClick={toggleMute}
-                    className={`w-full flex items-center justify-center gap-2 font-medium py-3 px-4 rounded-2xl border transition-all active:scale-[0.98] cursor-pointer ${
-                      isMuted
-                        ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/50'
-                        : 'bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-250/50'
-                    }`}
-                  >
-                    {isMuted ? (
-                      <>
-                        <Volume2 className="w-4 h-4" />
-                        Sesi Aç (Aktifleştir)
-                      </>
-                    ) : (
-                      <>
-                        <VolumeX className="w-4 h-4" />
-                        Bildirimleri Sessize Al
-                      </>
-                    )}
-                  </button>
-
                   {/* Send Test Notification Button */}
                   <button
                     onClick={sendTestNotification}
@@ -513,9 +485,10 @@ export default function Dashboard({
               <h3 className="text-lg sm:text-xl font-bold text-zinc-800 leading-snug">
                 {announcement.title}
               </h3>
-              <p className="text-sm text-zinc-650 leading-relaxed">
-                {announcement.description}
-              </p>
+              <div 
+                className="text-sm text-zinc-650 leading-relaxed whitespace-pre-wrap animate-fade-in"
+                dangerouslySetInnerHTML={{ __html: announcement.description }}
+              />
             </div>
 
             {/* Attached Files & Guides Section */}
