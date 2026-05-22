@@ -81,7 +81,6 @@ function CountdownTimer() {
   const [activeTab, setActiveTab] = useState<'yazili' | 'esinaV'>('esinaV');
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, completed: false });
   const [showTips, setShowTips] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const targetDate = TARGETS[activeTab];
@@ -104,26 +103,17 @@ function CountdownTimer() {
 
   return (
     <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
-      {/* Collapsible Header */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
-      >
+      {/* Header */}
+      <div className="p-6 border-b border-pink-100/40">
         <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1.5 select-none">
           <Clock className="w-3.5 h-3.5 text-pink-400" />
           <span>SINAV GERİ SAYIMI</span>
           <span>⏳</span>
         </h2>
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-pink-400 transition-transform" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-pink-400 transition-transform" />
-        )}
-      </button>
+      </div>
 
-      {/* Collapsible Content */}
-      {isExpanded && (
-        <div className="px-6 pb-6 space-y-5 animate-fade-in border-t border-pink-100/40 pt-5">
+      {/* Content */}
+      <div className="p-6 space-y-5">
           {/* Tabs */}
           <div className="flex bg-pink-50/50 p-1.5 rounded-2xl border border-pink-100/80">
             <button
@@ -221,7 +211,6 @@ function CountdownTimer() {
             )}
           </div>
         </div>
-      )}
     </div>
   );
 }
@@ -255,6 +244,7 @@ export default function Dashboard({
 
   // Card collapsibility state
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
 
   // Confirmation state (for registration, course selection, or exam appointment)
   const [isConfirmed, setIsConfirmed] = useState<boolean | null>(null);
@@ -705,43 +695,61 @@ export default function Dashboard({
       {/* Dynamic ambient background glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-400/20 blur-[80px] sm:blur-[120px] pointer-events-none -z-10" />
 
-      {/* Header and status area */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/70 border border-pink-200/50 p-6 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40">
-        <div className="flex items-center gap-3">
-          <HelloKittyBow />
-          <div className="space-y-1">
+      {/* Header and status area (Collapsible) */}
+      <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
+        <button
+          onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
+          className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <HelloKittyBow />
             <div className="flex items-center gap-2">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
               </span>
               <h1 className="text-xl font-bold tracking-tight text-pink-600">AOL Duyuru Takip</h1>
-              <span className="text-xs bg-pink-100 text-pink-700 font-medium px-2 py-0.5 rounded-full border border-pink-200/50">
+            </div>
+          </div>
+          {isHeaderExpanded ? (
+            <ChevronUp className="w-5 h-5 text-pink-400 transition-transform" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-pink-400 transition-transform" />
+          )}
+        </button>
+
+        {isHeaderExpanded && (
+          <div className="px-6 pb-6 pt-2 space-y-4 animate-fade-in border-t border-pink-100/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <span className="text-xs bg-pink-100 text-pink-700 font-medium px-2.5 py-0.5 rounded-full border border-pink-200/50 w-fit inline-block">
                 PWA v1.0 🎀
               </span>
+              <p className="text-sm text-zinc-650">MEB Açık Öğretim Lisesi önemli duyuruları anlık cebinizde.</p>
             </div>
-            <p className="text-sm text-zinc-650">MEB Açık Öğretim Lisesi önemli duyuruları anlık cebinizde.</p>
-          </div>
-        </div>
 
-        {/* Sync / refresh details */}
-        <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs text-zinc-550">
-          <div className="flex items-center gap-2">
-            <span>Kontrol: <strong className="text-pink-650">{lastChecked}</strong></span>
-            <button
-              onClick={triggerManualCheck}
-              disabled={isRefreshing}
-              className="p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100/80 active:scale-95 border border-pink-150 transition-all text-pink-600 disabled:opacity-50"
-              title="Şimdi Kontrol Et"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
-            </button>
+            {/* Sync / refresh details */}
+            <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs text-zinc-550 shrink-0">
+              <div className="flex items-center gap-2">
+                <span>Kontrol: <strong className="text-pink-650">{lastChecked}</strong></span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerManualCheck();
+                  }}
+                  disabled={isRefreshing}
+                  className="p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100/80 active:scale-95 border border-pink-150 transition-all text-pink-600 disabled:opacity-50 cursor-pointer"
+                  title="Şimdi Kontrol Et"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 bg-pink-50/80 text-pink-700 px-2.5 py-0.5 rounded-lg border border-pink-100/60 text-[11px]">
+                <Cpu className="w-3 h-3 text-pink-500" />
+                <span>Store: <strong className="text-pink-650">{redisType}</strong></span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 bg-pink-50/80 text-pink-700 px-2.5 py-0.5 rounded-lg border border-pink-100/60 text-[11px]">
-            <Cpu className="w-3 h-3 text-pink-500" />
-            <span>Store: <strong className="text-pink-650">{redisType}</strong></span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* PWA State Instructions for iOS Safari outside PWA */}
@@ -1002,7 +1010,6 @@ export default function Dashboard({
                   <span>MEB SON DUYURU</span>
                   <span>🎀</span>
                 </h2>
-                <div className="text-[11px] text-pink-500 font-semibold bg-pink-100/50 px-2 py-0.5 rounded-lg border border-pink-200/30 w-fit">Scraped from: aol.meb.gov.tr</div>
               </div>
               <div className="flex flex-wrap gap-2 text-[11px]">
                 <span className="bg-pink-50 text-pink-600 border border-pink-200/30 px-2.5 py-1 rounded-lg">
