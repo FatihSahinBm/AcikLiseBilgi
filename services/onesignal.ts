@@ -120,9 +120,11 @@ export async function sendTargetedNotification(
       app_id: config.appId,
       include_subscription_ids: [subscriptionId], // Target specific subscription
       headings: {
+        en: 'Açık Lise (AOL) Notification',
         tr: title
       },
       contents: {
+        en: message,
         tr: message
       },
       url: 'https://aol-duyuru-pwa.vercel.app',

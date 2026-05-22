@@ -116,9 +116,16 @@ export default function Dashboard({
           // Listen to changes
           OneSignal.Notifications.addEventListener('permissionChange', (permissionState: any) => {
             console.log('OneSignal Permission Change:', permissionState);
-            setPermission(permissionState ? 'granted' : 'denied');
             updatePushStatus();
           });
+
+          // Listen to subscription changes (v16+)
+          if (OneSignal.User && OneSignal.User.PushSubscription) {
+            OneSignal.User.PushSubscription.addEventListener('change', () => {
+              console.log('OneSignal Subscription Change event triggered');
+              updatePushStatus();
+            });
+          }
 
           // Check if muted state is saved in LocalStorage
           const localMuteState = localStorage.getItem('aol_push_muted') === 'true';
@@ -147,10 +154,25 @@ export default function Dashboard({
 
     OneSignal.push(async () => {
       const currentPermission = OneSignal.Notifications.permission;
-      setPermission(currentPermission ? 'granted' : 'default');
-
+      
       // Get device push subscription ID
       const subscription = OneSignal.User.PushSubscription;
+      const hasSubscription = !!(subscription && subscription.id);
+
+      // Check if permission is denied at the browser level, or granted/subscribed
+      let permissionState = 'default';
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (window.Notification.permission === 'denied') {
+          permissionState = 'denied';
+        } else if (window.Notification.permission === 'granted' || currentPermission || hasSubscription) {
+          permissionState = 'granted';
+        }
+      } else if (currentPermission || hasSubscription) {
+        permissionState = 'granted';
+      }
+
+      setPermission(permissionState);
+
       if (subscription && subscription.id) {
         setSubscriptionId(subscription.id);
         
