@@ -244,6 +244,7 @@ export default function Dashboard({
 
   // Card collapsibility state
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
+  const [isIosPromptExpanded, setIsIosPromptExpanded] = useState(false);
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
 
   // Confirmation state (for registration, course selection, or exam appointment)
@@ -482,11 +483,6 @@ export default function Dashboard({
       }
 
       setPermission(permissionState);
-
-      // Auto-expand settings panel if notifications are not yet granted
-      if (permissionState !== 'granted') {
-        setIsSettingsExpanded(true);
-      }
 
       // Force explicit OneSignal subscription registration if permission is granted but ID is missing
       if (permissionState === 'granted' && !hasSubscription) {
@@ -844,165 +840,186 @@ export default function Dashboard({
         <h1 className="text-2xl font-black bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">AOL Duyuru Takip</h1>
       </div>
 
-      {/* PWA State Instructions for iOS Safari outside PWA */}
-      {showIosPrompt && (
-        <div className="relative overflow-hidden bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200/50 p-5 rounded-3xl shadow-lg shadow-pink-100/30 animate-fade-in text-zinc-700">
-          <div className="flex gap-4">
-            <div className="p-3 bg-pink-100 text-pink-600 rounded-2xl h-fit border border-pink-200/30">
-              <Share2 className="w-6 h-6 animate-pulse" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-sm font-semibold text-pink-600">iPhone Safari Bildirim Kurulumu 🎀</h2>
-              <p className="text-xs text-zinc-650 leading-relaxed">
-                Apple güvenlik politikası gereği, iPhone cihazlarda Web Push bildirimleri alabilmek için bu siteyi 
-                <strong> Ana Ekrana Eklemeniz</strong> gerekmektedir.
-              </p>
-              <div className="bg-white/60 p-3 rounded-2xl text-xs space-y-1.5 text-zinc-700 border border-pink-100">
-                <p>1. Safari çubuğundaki <strong className="text-pink-600">"Paylaş" (Share) 📤</strong> butonuna dokunun.</p>
-                <p>2. Menüyü kaydırıp <strong className="text-pink-600">"Ana Ekrana Ekle" (Add to Home Screen) ➕</strong> seçeneğine tıklayın.</p>
-                <p>3. Ana ekrana eklenen uygulamayı açıp alttaki <strong>"Bildirimleri Aç"</strong> butonunu aktif edin.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Grid: Announcement display & Notification settings */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Settings Row */}
+      <div className={`grid gap-6 ${showIosPrompt ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
         
-        {/* Left Column: Notification Control Panel */}
-        <div className="md:col-span-1 space-y-6">
+        {/* Notification Settings Card */}
+        <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
+          {/* Collapsible Header */}
+          <button
+            onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+            className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
+          >
+            <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1 select-none">
+              <span>BİLDİRİM AYARLARI</span>
+              <span>🎀</span>
+            </h2>
+            {isSettingsExpanded ? (
+              <ChevronUp className="w-4 h-4 text-pink-400 transition-transform" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-pink-400 transition-transform" />
+            )}
+          </button>
+          
+          {/* Collapsible Content */}
+          {isSettingsExpanded && (
+            <div className="px-6 pb-6 space-y-5 animate-fade-in border-t border-pink-100/40 pt-5">
+              {/* Status Visualizer */}
+              <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
+                <div className={`p-4 rounded-full ${
+                  permission === 'granted'
+                    ? (subscriptionId 
+                        ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
+                        : 'bg-amber-100 text-amber-600 border border-amber-200 shadow-md shadow-amber-100/50 animate-pulse')
+                    : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
+                }`}>
+                  {permission === 'granted' ? (
+                    subscriptionId ? (
+                      <Bell className="w-8 h-8 animate-bounce" />
+                    ) : (
+                      <BellOff className="w-8 h-8 text-amber-500" />
+                    )
+                  ) : (
+                    <BellOff className="w-8 h-8" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-zinc-500">Durum</div>
+                  <div className="text-sm font-bold text-pink-650">
+                    {permission === 'granted'
+                      ? (subscriptionId ? 'Bildirimler Aktif' : 'Kurulum Gerekli ⚠️')
+                      : permission === 'denied'
+                      ? 'Engellendi'
+                      : 'İzin Bekleniyor'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggle Actions */}
+              <div className="space-y-3">
+                {permission !== 'granted' ? (
+                  <button
+                    onClick={enableNotifications}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-pink-500/25 cursor-pointer"
+                  >
+                    <Bell className="w-4 h-4" />
+                    Bildirimleri Aç
+                  </button>
+                ) : !subscriptionId ? (
+                  <div className="space-y-2.5">
+                    <div className="p-3 bg-amber-50/60 border border-amber-200/30 rounded-2xl text-[11px] text-amber-700 leading-relaxed">
+                      <strong>⚠️ Aygıt Kaydı Tamamlanamadı:</strong> İzinler aktif görünmesine rağmen cihazınız sisteme kaydedilemedi. iOS/Safari Web Push kuralları gereği, kaydı tamamlamak için aşağıdaki butona basmalısınız.
+                    </div>
+                    <button
+                      onClick={completeRegistration}
+                      disabled={testPushLoading}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/25 cursor-pointer"
+                    >
+                      {testPushLoading ? (
+                        <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      ) : (
+                        <BellRing className="w-4 h-4 animate-pulse" />
+                      )}
+                      Bildirim Kaydını Tamamla
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Send Test Notification Button */}
+                    <button
+                      onClick={sendTestNotification}
+                      disabled={testPushLoading}
+                      className="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100/80 text-pink-600 border border-pink-200/50 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      {testPushLoading ? (
+                        <span className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin" />
+                      ) : (
+                        <Bell className="w-4 h-4" />
+                      )}
+                      Test Bildirimi Gönder
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Test Notification Result Alert */}
+              {testPushResult && (
+                <div className={`p-4 rounded-2xl text-xs flex gap-2 border ${
+                  testPushResult.success 
+                    ? 'bg-pink-50 text-pink-700 border-pink-200/40' 
+                    : 'bg-red-50 text-red-700 border-red-200/40'
+                }`}>
+                  <Info className="w-4 h-4 shrink-0 text-pink-500" />
+                  <p>{testPushResult.message}</p>
+                </div>
+              )}
+
+              {/* Subscription Key Debug Card */}
+              {subscriptionId && (
+                <div className="bg-pink-50/40 border border-pink-100 rounded-2xl p-4 space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-zinc-500">
+                    <span>OneSignal Aygıt Kimliği:</span>
+                    <button
+                      onClick={() => copyToClipboard(subscriptionId)}
+                      className="hover:text-pink-600 p-1 rounded transition-colors text-zinc-400"
+                      title="Kimliği Kopyala"
+                    >
+                      {copied ? 'Kopyalandı!' : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <div className="font-mono text-pink-700 break-all select-all bg-white/70 p-2.5 rounded-xl border border-pink-100/80 leading-normal">
+                    {subscriptionId}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* iPhone Safari PWA Installation Card */}
+        {showIosPrompt && (
           <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
             {/* Collapsible Header */}
             <button
-              onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+              onClick={() => setIsIosPromptExpanded(!isIosPromptExpanded)}
               className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
             >
-              <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1 select-none">
-                <span>BİLDİRİM AYARLARI</span>
+              <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1.5 select-none">
+                <Share2 className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+                <span>IPHONE SAFARI KURULUMU</span>
                 <span>🎀</span>
               </h2>
-              {isSettingsExpanded ? (
+              {isIosPromptExpanded ? (
                 <ChevronUp className="w-4 h-4 text-pink-400 transition-transform" />
               ) : (
                 <ChevronDown className="w-4 h-4 text-pink-400 transition-transform" />
               )}
             </button>
-            
+
             {/* Collapsible Content */}
-            {isSettingsExpanded && (
-              <div className="px-6 pb-6 space-y-5 animate-fade-in border-t border-pink-100/40 pt-5">
-                {/* Status Visualizer */}
-                <div className="flex flex-col items-center justify-center p-6 bg-pink-50/40 rounded-2xl border border-pink-100 space-y-3">
-                  <div className={`p-4 rounded-full ${
-                    permission === 'granted'
-                      ? (subscriptionId 
-                          ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-md shadow-pink-100/50'
-                          : 'bg-amber-100 text-amber-600 border border-amber-200 shadow-md shadow-amber-100/50 animate-pulse')
-                      : 'bg-zinc-50 text-zinc-400 border border-zinc-200/60'
-                  }`}>
-                    {permission === 'granted' ? (
-                      subscriptionId ? (
-                        <Bell className="w-8 h-8 animate-bounce" />
-                      ) : (
-                        <BellOff className="w-8 h-8 text-amber-500" />
-                      )
-                    ) : (
-                      <BellOff className="w-8 h-8" />
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-zinc-500">Durum</div>
-                    <div className="text-sm font-bold text-pink-650">
-                      {permission === 'granted'
-                        ? (subscriptionId ? 'Bildirimler Aktif' : 'Kurulum Gerekli ⚠️')
-                        : permission === 'denied'
-                        ? 'Engellendi'
-                        : 'İzin Bekleniyor'}
-                    </div>
-                  </div>
+            {isIosPromptExpanded && (
+              <div className="px-6 pb-6 space-y-4 animate-fade-in border-t border-pink-100/40 pt-5 text-zinc-700">
+                <p className="text-xs text-zinc-650 leading-relaxed">
+                  Apple güvenlik politikası gereği, iPhone cihazlarda Web Push bildirimleri alabilmek için bu siteyi 
+                  <strong> Ana Ekrana Eklemeniz</strong> gerekmektedir.
+                </p>
+                <div className="bg-white/60 p-3 rounded-2xl text-xs space-y-1.5 text-zinc-700 border border-pink-100">
+                  <p>1. Safari çubuğundaki <strong className="text-pink-600">"Paylaş" (Share) 📤</strong> butonuna dokunun.</p>
+                  <p>2. Menüyü kaydırıp <strong className="text-pink-600">"Ana Ekrana Ekle" (Add to Home Screen) ➕</strong> seçeneğine tıklayın.</p>
+                  <p>3. Ana ekrana eklenen uygulamayı açıp alttaki <strong>"Bildirimleri Aç"</strong> butonunu aktif edin.</p>
                 </div>
-
-                {/* Toggle Actions */}
-                <div className="space-y-3">
-                  {permission !== 'granted' ? (
-                    <button
-                      onClick={enableNotifications}
-                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-pink-500/25 cursor-pointer"
-                    >
-                      <Bell className="w-4 h-4" />
-                      Bildirimleri Aç
-                    </button>
-                  ) : !subscriptionId ? (
-                    <div className="space-y-2.5">
-                      <div className="p-3 bg-amber-50/60 border border-amber-200/30 rounded-2xl text-[11px] text-amber-700 leading-relaxed">
-                        <strong>⚠️ Aygıt Kaydı Tamamlanamadı:</strong> İzinler aktif görünmesine rağmen cihazınız sisteme kaydedilemedi. iOS/Safari Web Push kuralları gereği, kaydı tamamlamak için aşağıdaki butona basmalısınız.
-                      </div>
-                      <button
-                        onClick={completeRegistration}
-                        disabled={testPushLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] transition-all text-white font-medium py-3 px-4 rounded-2xl shadow-lg shadow-amber-500/25 cursor-pointer"
-                      >
-                        {testPushLoading ? (
-                          <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                        ) : (
-                          <BellRing className="w-4 h-4 animate-pulse" />
-                        )}
-                        Bildirim Kaydını Tamamla
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* Send Test Notification Button */}
-                      <button
-                        onClick={sendTestNotification}
-                        disabled={testPushLoading}
-                        className="w-full flex items-center justify-center gap-2 bg-pink-50 hover:bg-pink-100/80 text-pink-600 border border-pink-200/50 font-medium py-3 px-4 rounded-2xl transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
-                      >
-                        {testPushLoading ? (
-                          <span className="w-4 h-4 rounded-full border-2 border-pink-400 border-t-transparent animate-spin" />
-                        ) : (
-                          <Bell className="w-4 h-4" />
-                        )}
-                        Test Bildirimi Gönder
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Test Notification Result Alert */}
-                {testPushResult && (
-                  <div className={`p-4 rounded-2xl text-xs flex gap-2 border ${
-                    testPushResult.success 
-                      ? 'bg-pink-50 text-pink-700 border-pink-200/40' 
-                      : 'bg-red-50 text-red-700 border-red-200/40'
-                  }`}>
-                    <Info className="w-4 h-4 shrink-0 text-pink-500" />
-                    <p>{testPushResult.message}</p>
-                  </div>
-                )}
-
-                {/* Subscription Key Debug Card */}
-                {subscriptionId && (
-                  <div className="bg-pink-50/40 border border-pink-100 rounded-2xl p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-zinc-500">
-                      <span>OneSignal Aygıt Kimliği:</span>
-                      <button
-                        onClick={() => copyToClipboard(subscriptionId)}
-                        className="hover:text-pink-600 p-1 rounded transition-colors text-zinc-400"
-                        title="Kimliği Kopyala"
-                      >
-                        {copied ? 'Kopyalandı!' : <Copy className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                    <div className="font-mono text-pink-700 break-all select-all bg-white/70 p-2.5 rounded-xl border border-pink-100/80 leading-normal">
-                      {subscriptionId}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
+        )}
+
+      </div>
+
+      {/* Grid: Announcement display & Countdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Left Column: CountdownTimer */}
+        <div className="md:col-span-1">
           <CountdownTimer />
         </div>
 
