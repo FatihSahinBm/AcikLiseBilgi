@@ -356,22 +356,22 @@ export function extractDeadline(title: string, description: string): Date | null
 
   const dates: Date[] = [];
   
-  // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (Constrained to years 2025-2039 or 25-39)
-  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|2[5-9]|3[0-9])(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
+  // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (any 2-digit or 4-digit year; past years filtered downstream)
+  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|\d{2})(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
   let match;
   while ((match = numericRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
     const month = parseInt(match[2], 10) - 1; // 0-indexed
     const parsedYear = parseInt(match[3], 10);
     const year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
-    const date = new Date(year, month, day);
+    const date = new Date(Date.UTC(year, month, day));
     if (!isNaN(date.getTime())) {
       dates.push(date);
     }
   }
 
   // 2. Match DD MonthName [Year] (Turkish textual dates, e.g. "15 Haziran 2026" or "15 Haziran 26" or "15 Haziran")
-  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|2[5-9]|3[0-9]))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
+  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|\d{2}))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
   while ((match = textRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
     const monthName = match[2].toLocaleLowerCase('tr-TR')
@@ -399,7 +399,7 @@ export function extractDeadline(title: string, description: string): Date | null
         }
       }
       
-      const date = new Date(year, month, day);
+      const date = new Date(Date.UTC(year, month, day));
       if (!isNaN(date.getTime())) {
         dates.push(date);
       }
@@ -410,7 +410,7 @@ export function extractDeadline(title: string, description: string): Date | null
 
   // Filter out dates that are in the past relative to the system baseline (current year)
   const currentYear = new Date().getFullYear();
-  const validDates = dates.filter(d => d.getFullYear() >= currentYear);
+  const validDates = dates.filter(d => d.getUTCFullYear() >= currentYear);
   if (validDates.length === 0) return null;
 
   // Sort ascending, return the latest date

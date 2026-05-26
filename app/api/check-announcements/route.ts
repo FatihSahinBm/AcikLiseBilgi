@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         turkeyTime.getUTCDate()
       );
       
-      const deadlineMs = Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+      const deadlineMs = Date.UTC(deadline.getUTCFullYear(), deadline.getUTCMonth(), deadline.getUTCDate());
       const diffDays = Math.round((deadlineMs - todayMs) / (1000 * 60 * 60 * 24));
       
       reminderDaysRemaining = diffDays;

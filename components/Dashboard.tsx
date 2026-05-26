@@ -369,22 +369,32 @@ export default function Dashboard({
     if (!OneSignal) return;
 
     OneSignal.push(async () => {
-      const currentPermission = OneSignal.Notifications?.permission;
+      // Primary: OneSignal v16 API. Fallback: v15 API. Last resort: 'default'.
+      const currentPermission = OneSignal.Notifications?.permission
+        || (typeof OneSignal.getNotificationPermission === 'function'
+            ? await OneSignal.getNotificationPermission()
+            : undefined);
       
       // Get device push subscription ID
       const subscription = OneSignal.User?.PushSubscription;
       const hasSubscription = !!(subscription && subscription.id);
 
-      // Check if permission is denied at the browser level, or granted/subscribed
+      // Determine permission state:
+      // Priority 1: OneSignal SDK's own permission value (works on all platforms including iOS PWA)
+      // Priority 2: Browser's Notification API (only exists in iOS PWA, not normal Safari)
       let permissionState = 'default';
-      if (typeof window !== 'undefined' && 'Notification' in window) {
+
+      if (currentPermission === true || currentPermission === 'granted' || hasSubscription) {
+        permissionState = 'granted';
+      } else if (currentPermission === false || currentPermission === 'denied') {
+        permissionState = 'denied';
+      } else if (typeof window !== 'undefined' && 'Notification' in window) {
+        // Fallback to browser Notification API only when OneSignal gives no clear answer
         if (window.Notification.permission === 'denied') {
           permissionState = 'denied';
-        } else if (window.Notification.permission === 'granted' || currentPermission || hasSubscription) {
+        } else if (window.Notification.permission === 'granted') {
           permissionState = 'granted';
         }
-      } else if (currentPermission || hasSubscription) {
-        permissionState = 'granted';
       }
 
       setPermission(permissionState);
