@@ -51,24 +51,28 @@ export async function GET(request: NextRequest) {
     let pushResult: any = null;
 
     // 4. Compare with last stored announcement
-    if (force || !lastStored || lastStored.id !== currentAnnouncement.id) {
-      isNew = true;
-      console.log('New announcement detected or force trigger active! Current ID:', currentAnnouncement.id);
+    const isActuallyNew = !lastStored || lastStored.id !== currentAnnouncement.id;
+    
+    if (force || isActuallyNew) {
+      isNew = isActuallyNew;
+      console.log('Announcement check complete. Force update:', force, 'Actually new:', isActuallyNew, 'Current ID:', currentAnnouncement.id);
       
-      // Update Redis
+      // Update Redis cache
       await redis.set(lastAnnouncementKey, currentAnnouncement);
       
-      // Trigger Web Push Notification via OneSignal
-      const notificationTitle = `Açık Lise: ${currentAnnouncement.title.substring(0, 50)}...`;
-      const notificationBody = `Yeni Önemli Duyuru Yayınlandı! Tarih: ${currentAnnouncement.updateDate}. Okumak için tıklayın.`;
-      
-      pushResult = await sendBroadcastNotification(
-        notificationTitle,
-        notificationBody,
-        currentAnnouncement.link
-      );
-      
-      notificationSent = pushResult.success;
+      if (isActuallyNew) {
+        // Trigger Web Push Notification via OneSignal ONLY if it is a genuinely new announcement!
+        const notificationTitle = `Açık Lise: ${currentAnnouncement.title.substring(0, 50)}...`;
+        const notificationBody = `Yeni Önemli Duyuru Yayınlandı! Tarih: ${currentAnnouncement.updateDate}. Okumak için tıklayın.`;
+        
+        pushResult = await sendBroadcastNotification(
+          notificationTitle,
+          notificationBody,
+          currentAnnouncement.link
+        );
+        
+        notificationSent = pushResult.success;
+      }
     } else {
       console.log('No new announcement detected. ID matched:', currentAnnouncement.id);
     }
@@ -81,28 +85,45 @@ export async function GET(request: NextRequest) {
     let reminderResult: any = null;
 
     if (announcementType !== 'none' && deadline) {
-      // Calculate remaining days in Turkey timezone
-      const trDateStr = new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' });
-      const nowTR = new Date(trDateStr);
-      const today = new Date(nowTR.getFullYear(), nowTR.getMonth(), nowTR.getDate());
+      // Calculate remaining days in Turkey timezone (GMT+3) safely without relying on toLocaleString parsing
+      const nowUTC = Date.now();
+      const turkeyOffsetMs = 3 * 60 * 60 * 1000;
+      const turkeyTime = new Date(nowUTC + turkeyOffsetMs);
+      const today = new Date(
+        turkeyTime.getUTCFullYear(),
+        turkeyTime.getUTCMonth(),
+        turkeyTime.getUTCDate()
+      );
       
       const deadlineDate = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
       const diffTime = deadlineDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
       
       reminderDaysRemaining = diffDays;
       console.log(`Announcement type: ${announcementType}, Deadline: ${deadlineDate.toISOString()}, days remaining: ${diffDays}`);
 
-      if (diffDays === 7 || diffDays === 3 || diffDays === 1) {
-        const reminderKey = `aol_reminder_sent:${announcementType}:${currentAnnouncement.id}:${diffDays}d`;
+      // Self-healing, bracket-based reminders
+      let targetTier: '7d' | '3d' | '1d' | null = null;
+      let dayText = '';
+
+      if (diffDays >= 4 && diffDays <= 7) {
+        targetTier = '7d';
+        dayText = diffDays === 7 ? '1 hafta' : `${diffDays} gün`;
+      } else if (diffDays >= 2 && diffDays <= 3) {
+        targetTier = '3d';
+        dayText = `${diffDays} gün`;
+      } else if (diffDays >= 0 && diffDays <= 1) {
+        targetTier = '1d';
+        dayText = diffDays === 1 ? 'son 1 gün' : 'bugün son gün';
+      }
+
+      if (targetTier) {
+        const reminderKey = `aol_reminder_sent:${announcementType}:${currentAnnouncement.id}:${targetTier}`;
         const alreadySent = await redis.get<boolean>(reminderKey);
 
         if (!alreadySent) {
-          console.log(`Sending ${diffDays}-day reminder for ${announcementType} (announcement ${currentAnnouncement.id})`);
-          let dayText = `${diffDays} gün`;
-          if (diffDays === 7) dayText = '1 hafta';
-          else if (diffDays === 1) dayText = 'son 1 gün';
-
+          console.log(`Sending ${targetTier} reminder (${diffDays} days remaining) for ${announcementType} (announcement ${currentAnnouncement.id})`);
+          
           let reminderTitle = '';
           let reminderBody = '';
           let tagKey = '';
@@ -141,7 +162,7 @@ export async function GET(request: NextRequest) {
             }
           }
         } else {
-          console.log(`Reminder already sent for ${diffDays} days key: ${reminderKey}`);
+          console.log(`Reminder already sent for tier ${targetTier} key: ${reminderKey}`);
         }
       }
     }

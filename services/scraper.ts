@@ -11,10 +11,15 @@ export interface Announcement {
   files: { title: string; url: string }[];
 }
 
+interface RssAnnouncement {
+  title: string;
+  link: string;
+}
+
 /**
- * Fetches the latest announcement URL from MEB's RSS feed.
+ * Fetches the latest announcement URL and title from MEB's RSS feed.
  */
-async function getLatestAnnouncementUrl(): Promise<string> {
+async function getLatestAnnouncementFromRss(): Promise<RssAnnouncement | null> {
   const rssUrl = 'https://aol.meb.gov.tr/meb_iys_dosyalar/xml/rss_duyurular.xml';
   try {
     const response = await axios.get(rssUrl, {
@@ -27,15 +32,65 @@ async function getLatestAnnouncementUrl(): Promise<string> {
     });
     
     const $ = cheerio.load(response.data, { xmlMode: true });
-    // Find the link of the first item
-    const firstLink = $('item').first().find('link').text().trim();
-    if (firstLink) {
-      console.log('Discovered latest announcement link from RSS:', firstLink);
-      return firstLink;
+    const firstItem = $('item').first();
+    const link = firstItem.find('link').text().trim();
+    const title = firstItem.find('title').text().trim();
+    if (link) {
+      console.log('Discovered latest announcement from RSS:', { title, link });
+      return { title, link };
     }
   } catch (error: any) {
-    console.error('Failed to parse RSS feed, using fallback URL:', error.message);
+    console.error('Failed to parse RSS feed:', error.message);
   }
+  return null;
+}
+
+/**
+ * Scrapes AOL's general announcement list page to find the first dynamic announcement URL.
+ * Used as a fallback when RSS feed is down.
+ */
+async function getLatestAnnouncementUrlFromListPage(): Promise<string> {
+  const listUrl = 'https://aol.meb.gov.tr/www/onemli-duyuru/kategori/1';
+  try {
+    const response = await axios.get(listUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      timeout: 10000
+    });
+    const $ = cheerio.load(response.data);
+    
+    let foundLink = '';
+    // Try content/list containers first to avoid header/footer links
+    const selectors = ['.content', '.main', '#content', '.list-group', '.kategori-listesi', 'body'];
+    for (const selector of selectors) {
+      const container = $(selector);
+      if (container.length > 0) {
+        container.find('a').each((i, el) => {
+          const href = $(el).attr('href');
+          if (href && href.includes('/icerik/')) {
+            foundLink = href.trim();
+            return false;
+          }
+        });
+        if (foundLink) break;
+      }
+    }
+
+    if (foundLink) {
+      const absoluteUrl = foundLink.startsWith('http') 
+        ? foundLink 
+        : `https://aol.meb.gov.tr${foundLink.startsWith('/') ? '' : '/'}${foundLink}`;
+      console.log('Discovered latest announcement link from category list page fallback:', absoluteUrl);
+      return absoluteUrl;
+    }
+  } catch (error: any) {
+    console.error('Failed to parse AOL category list page fallback:', error.message);
+  }
+  
+  // Hardcoded absolute fallback if both RSS and category page scraping fail
   return 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481';
 }
 
@@ -76,7 +131,7 @@ function highlightImportantTerms(text: string): string {
     return `<span class="${highlightClass}">${match}</span>`;
   });
 
-  // 3. Match individual key terms if they are not already part of an HTML tag
+  // 3. Match individual key terms if they are not already part of an HTML tag or inside span/strong
   const terms = [
     'Kayıt Yenileme Tarihleri',
     'Kayıt Yenileme Tarihi',
@@ -99,9 +154,14 @@ function highlightImportantTerms(text: string): string {
 
   for (const term of terms) {
     const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    // Negative lookahead/lookbehind prevents replacement inside tag parameters (like class names)
-    const regex = new RegExp(`(?<!<[^>]*)(${escapedTerm})(?![^<]*>)`, 'gi');
-    html = html.replace(regex, `<strong class="${termClass}">$1</strong>`);
+    // Match existing HTML tags, spans, or strong blocks, OR the term itself
+    const regex = new RegExp(`(<span[^>]*>.*?<\\/span>|<strong[^>]*>.*?<\\/strong>|<[^>]+>)|(${escapedTerm})`, 'gi');
+    html = html.replace(regex, (match, tagPart, termPart) => {
+      if (tagPart) {
+        return tagPart; // return HTML tags/blocks unchanged
+      }
+      return `<strong class="${termClass}">${termPart}</strong>`;
+    });
   }
 
   return html;
@@ -112,12 +172,21 @@ function highlightImportantTerms(text: string): string {
  * @param url The URL of the page to scrape
  */
 export async function scrapeAnnouncement(
-  url?: string
+  url?: string,
+  preferredTitle?: string
 ): Promise<Announcement> {
   try {
     let targetUrl = url;
+    let rssTitle = preferredTitle || '';
+
     if (!targetUrl) {
-      targetUrl = await getLatestAnnouncementUrl();
+      const rssData = await getLatestAnnouncementFromRss();
+      if (rssData) {
+        targetUrl = rssData.link;
+        rssTitle = rssData.title;
+      } else {
+        targetUrl = await getLatestAnnouncementUrlFromListPage();
+      }
     }
 
     // Ensure we are targeting the Turkish version if it's a content page
@@ -141,31 +210,50 @@ export async function scrapeAnnouncement(
     const $ = cheerio.load(response.data);
 
     // 1. Title Extraction
-    // First we check if there's a strong/p inside .content that contains the primary subject
     let title = '';
-    
-    // Check inside .content paragraphs
-    const paragraphs = $('.content p');
-    for (let i = 0; i < paragraphs.length; i++) {
-      const pText = $(paragraphs[i]).text().trim();
-      const hasStrong = $(paragraphs[i]).find('strong').length > 0;
-      
-      // If paragraph contains a strong tag and is of decent length, it's likely our main title
-      if (hasStrong && pText.length > 20 && pText.length < 200) {
-        title = pText;
-        break;
+
+    // Prioritize RSS title if available
+    if (rssTitle) {
+      title = rssTitle;
+    }
+
+    // Fallback 1: Cheerio headings (.content h1, .content h2, .content h3, h1, h2, h3)
+    if (!title) {
+      const headingSelectors = ['.content h1', '.content h2', 'h1', 'h2', '.content h3', 'h3'];
+      for (const selector of headingSelectors) {
+        const headingText = $(selector).first().text().trim();
+        if (headingText && headingText.length > 10 && headingText.length < 200) {
+          title = headingText;
+          break;
+        }
       }
     }
 
-    // Fallbacks if no matching strong paragraph is found
+    // Fallback 2: Check inside .content paragraphs containing strong tags
+    if (!title) {
+      const paragraphs = $('.content p');
+      for (let i = 0; i < paragraphs.length; i++) {
+        const pText = $(paragraphs[i]).text().trim();
+        const hasStrong = $(paragraphs[i]).find('strong').length > 0;
+        
+        if (hasStrong && pText.length > 20 && pText.length < 200) {
+          title = pText;
+          break;
+        }
+      }
+    }
+
+    // Fallback 3: First paragraph inside .content
     if (!title) {
       const firstP = $('.content p').first().text().trim();
       if (firstP && firstP.length > 20 && firstP.length < 200) {
         title = firstP;
-      } else {
-        const h2Title = $('h2').first().text().trim();
-        title = h2Title || 'Açık Öğretim Lisesi Önemli Duyuru';
       }
+    }
+
+    // Final Fallback
+    if (!title) {
+      title = 'Açık Öğretim Lisesi Önemli Duyuru';
     }
 
     // Clean up excessive whitespace
@@ -184,17 +272,9 @@ export async function scrapeAnnouncement(
       }
     });
 
-    // Fallbacks for dates if they aren't parsed
-    const currentDateString = new Date().toLocaleString('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    
-    publishDate = publishDate || currentDateString;
-    updateDate = updateDate || currentDateString;
+    // Ensure display dates are clean and static, avoiding dynamic current time fallbacks
+    const displayPublishDate = publishDate || 'Belirtilmedi';
+    const displayUpdateDate = updateDate || publishDate || 'Belirtilmedi';
 
     // 3. Extract Attached Files / Guides (PDFs, Videos, etc.)
     const files: { title: string; url: string }[] = [];
@@ -241,8 +321,8 @@ export async function scrapeAnnouncement(
     // Highlight key terms and escape html
     const highlightedDescription = highlightImportantTerms(description);
 
-    // Generate unique ID based on a hash of the title and the update date
-    const signature = `${title}-${updateDate}`;
+    // Formül her zaman sabit kalmalı: title-targetUrl-updateDate
+    const signature = `${title}-${targetUrl}-${updateDate || ''}`;
     const id = Buffer.from(signature).toString('base64').substring(0, 16);
 
     return {
@@ -250,8 +330,8 @@ export async function scrapeAnnouncement(
       title,
       description: highlightedDescription,
       link: targetUrl,
-      publishDate,
-      updateDate,
+      publishDate: displayPublishDate,
+      updateDate: displayUpdateDate,
       files
     };
   } catch (error: any) {
@@ -276,24 +356,25 @@ export function extractDeadline(title: string, description: string): Date | null
 
   const dates: Date[] = [];
   
-  // 1. Match DD.MM.YYYY or DD/MM/YYYY
-  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](\d{4})\b/g;
+  // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (Constrained to years 2026-2039 or 26-39)
+  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|2[6-9]|3[0-9])(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
   let match;
   while ((match = numericRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
     const month = parseInt(match[2], 10) - 1; // 0-indexed
-    const year = parseInt(match[3], 10);
+    const parsedYear = parseInt(match[3], 10);
+    const year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
     const date = new Date(year, month, day);
     if (!isNaN(date.getTime())) {
       dates.push(date);
     }
   }
 
-  // 2. Match DD MonthName YYYY (Turkish textual dates, e.g. "15 Haziran 2026")
-  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)\s+(\d{4})\b/g;
+  // 2. Match DD MonthName [Year] (Turkish textual dates, e.g. "15 Haziran 2026" or "15 Haziran 26" or "15 Haziran")
+  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|2[6-9]|3[0-9]))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
   while ((match = textRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
-    const monthName = match[2].toLowerCase()
+    const monthName = match[2].toLocaleLowerCase('tr-TR')
       .replace(/ı/g, 'i')
       .replace(/ş/g, 's')
       .replace(/ğ/g, 'g')
@@ -303,7 +384,21 @@ export function extractDeadline(title: string, description: string): Date | null
     
     if (turkishMonths.hasOwnProperty(monthName)) {
       const month = turkishMonths[monthName];
-      const year = parseInt(match[3], 10);
+      let year = new Date().getFullYear(); // Default to current year
+      
+      if (match[3]) {
+        const parsedYear = parseInt(match[3], 10);
+        year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
+      } else {
+        // New Year/Holiday Transition Check:
+        // If current month is late in the year (Nov/Dec) and target deadline month is early in the year (Jan-Mar),
+        // we assume the deadline is in the upcoming year (currentYear + 1).
+        const currentMonthIndex = new Date().getMonth();
+        if (currentMonthIndex >= 9 && month <= 2) {
+          year = year + 1;
+        }
+      }
+      
       const date = new Date(year, month, day);
       if (!isNaN(date.getTime())) {
         dates.push(date);
@@ -313,8 +408,9 @@ export function extractDeadline(title: string, description: string): Date | null
 
   if (dates.length === 0) return null;
 
-  // Filter out dates that are in the past relative to the system baseline (2026)
-  const validDates = dates.filter(d => d.getFullYear() >= 2026);
+  // Filter out dates that are in the past relative to the system baseline (current year)
+  const currentYear = new Date().getFullYear();
+  const validDates = dates.filter(d => d.getFullYear() >= currentYear);
   if (validDates.length === 0) return null;
 
   // Sort ascending, return the latest date
@@ -326,7 +422,7 @@ export function extractDeadline(title: string, description: string): Date | null
  * Checks if the announcement title or description contains registration/renewal terms.
  */
 export function isRegistrationAnnouncement(title: string, description: string): boolean {
-  const combined = `${title} ${description}`.toLowerCase();
+  const combined = `${title} ${description}`.toLocaleLowerCase('tr-TR');
   return (
     combined.includes('kayıt yenileme') || 
     combined.includes('yeni kayıt') || 
@@ -345,7 +441,7 @@ export type AnnouncementType = 'registration' | 'course_selection' | 'exam_appoi
  * Classifies the announcement title and description into specific tracking categories.
  */
 export function detectAnnouncementType(title: string, description: string): AnnouncementType {
-  const combined = `${title} ${description}`.toLowerCase();
+  const combined = `${title} ${description}`.toLocaleLowerCase('tr-TR');
   
   if (combined.includes('e-sınav randevu') || 
       combined.includes('e-sinav randevu') || 

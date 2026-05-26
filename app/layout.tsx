@@ -20,8 +20,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'AOL Duyuru'
+  },
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: '/icons/icon-192x192.png'
   },
   other: {
     'mobile-web-app-capable': 'yes'
@@ -36,9 +40,8 @@ export default function RootLayout({
   return (
     <html lang="tr" className="h-full scroll-smooth">
       <head>
-        {/* Set PWA Vector Icons */}
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icon.svg" />
+        {/* iOS startup splash screen image */}
+        <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
       </head>
       <body className={`${inter.className} min-h-full bg-[#ffe5ec] text-zinc-800 antialiased flex flex-col`}>
         {children}

@@ -253,8 +253,8 @@ export default function Dashboard({
   // Detect announcement type and corresponding key states
   useEffect(() => {
     if (!announcement) return;
-    const title = announcement.title.toLowerCase();
-    const desc = announcement.description.toLowerCase();
+    const title = announcement.title.toLocaleLowerCase('tr-TR');
+    const desc = announcement.description.toLocaleLowerCase('tr-TR');
 
     let type: 'registration' | 'course_selection' | 'exam_appointment' | 'none' = 'none';
 

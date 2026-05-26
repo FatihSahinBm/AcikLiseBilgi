@@ -65,14 +65,14 @@ if (upstashUrl && upstashToken) {
   }) as unknown as IRedisClient;
   console.log('Redis initialized: Using Upstash production Redis.');
 } else {
-  // Development Mock instance
   if (process.env.NODE_ENV === 'production') {
-    console.warn(
-      'WARNING: Upstash Redis environment variables are missing in production! Falling back to in-memory store.'
+    throw new Error(
+      'CRITICAL ERROR: Upstash Redis environment variables (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) are missing in production!'
     );
-  } else {
-    console.log('Redis initialized: Upstash keys missing, using In-Memory Mock Redis.');
   }
+  
+  // Development Mock instance
+  console.log('Redis initialized: Upstash keys missing, using In-Memory Mock Redis.');
   
   // To ensure the mock persists across hot-reloads in development, attach to global
   const globalRef = global as unknown as { mockRedisClient?: IRedisClient };

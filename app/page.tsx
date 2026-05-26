@@ -68,7 +68,7 @@ export default async function Home() {
   const redisType = isMock ? 'In-Memory (Geliştirici Modu)' : 'Upstash Production Redis';
 
   return (
-    <main className="min-h-screen bg-transparent text-zinc-800 flex flex-col items-center justify-start overflow-x-hidden relative">
+    <main className="min-h-screen pt-[env(safe-area-inset-top)] bg-transparent text-zinc-800 flex flex-col items-center justify-start overflow-x-hidden relative">
       {/* Background gradients for premium aesthetic */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
