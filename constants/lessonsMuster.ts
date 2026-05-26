@@ -39,7 +39,7 @@ export const lessonsMuster: Record<string, string[]> = {
   ],
   "TÜRK DİLİ VE EDEBİYATI 7": [
     "1. Ünite: Giriş (Edebiyat ve Toplum İlişkisi, Edebi Akımlar)",
-    "2. Ünite: Hikaye (Cumhuriyet Dönemi 1980 Sonrası ve Bireyin İç Dünyası)",
+    "2. Ünite: Hikaye (Cumhurökkeş 1980 Sonrası ve Bireyin İç Dünyası)",
     "3. Ünite: Şiir (Cumhuriyet Dönemi 1960 Sonrası, Halk Şiiri ve Garip Dışı Şiir)",
     "4. Ünite: Roman (Cumhuriyet Dönemi Bireysel, Toplumcu, Tarihsel Roman)"
   ],
@@ -201,74 +201,59 @@ export const lessonsMuster: Record<string, string[]> = {
 
   // --- FİZİK ---
   "FİZİK 1": [
-    "1. Ünite: Fizik Bilimine Giriş (Fiziğin Alt Dalları, Bilimsel Yöntem)",
-    "2. Ünite: Madde ve Özellikleri (Kütle, Hacim, Özkütle, Adezyon, Kohezyon)",
-    "3. Ünite: Hareket ve Kuvvet (Konum, Sürat, Hız, Newton Yasaları)",
-    "4. Ünite: İş, Enerji ve Güç (Kinetik/Potansiyel Enerji, Enerji Dönüşümleri)"
+    "1. Ünite: Fizik Bilimine Giriş (Fiziğin Konusu, Alt Dalları, Fiziksel Nicelikler)",
+    "2. Ünite: Madde ve Özellikleri (Kütle, Hacim, Özkütle, Dayanıklılık, Adezyon, Kohezyon)"
   ],
   "FİZİK 2": [
-    "1. Ünite: Isı ve Sıcaklık (Genleşme, Termometreler, Hal Değişimi)",
-    "2. Ünite: Elektrostatik (Elektriksel Yükler, Coulomb Kanunu, Elektrik Alan)",
-    "3. Ünite: Elektrik ve Manyetizma (Elektrik Akımı, Direnç, Ohm Kanunu, Mıknatıslar)",
-    "4. Ünite: Basınç ve Kaldırma Kuvveti (Akışkanların Basıncı, Arşimet İlkesi)"
+    "1. Ünite: Hareket ve Kuvvet (Konum, Sürat, Hız, Newton'ın Hareket Yasaları, Sürtünme)",
+    "2. Ünite: Enerji (İş, Güç, Kinetik ve Potansiyel Enerji, Enerji Verimi)",
+    "3. Ünite: Isı ve Sıcaklık (Genleşme, Termometreler, Hal Değişimi, Isı İletimi)",
+    "4. Ünite: Elektrostatik (Elektriksel Yükler, Coulomb Kanunu, Elektriklenme)"
   ],
   "FİZİK 3": [
-    "1. Ünite: Vektörler ve Kuvvetlerin Dengesi (Tork ve Denge Koşulları)",
-    "2. Ünite: Bağıl Hareket ve Bir Boyutta Sabit İvmeli Hareket (Atışlar)",
-    "3. Ünite: Newton'ın Hareket Yasaları ve Sürtünme Kuvveti",
-    "4. Ünite: İki Boyutta Hareket (Yatay ve Eğik Atış)"
+    "1. Ünite: Elektrik ve Manyetizma (Elektrik Akımı, Potansiyel Fark, Ohm Kanunu, Mıknatıslar)",
+    "2. Ünite: Basınç (Katı, Sıvı ve Gazlarda Basınç Özellikleri)",
+    "3. Ünite: Kaldırma Kuvveti (Sıvıların Kaldırma Kuvveti, Arşimet İlkesi)"
   ],
   "FİZİK 4": [
-    "1. Ünite: İş, Enerji ve Momentum (Çizgisel Momentum, Esnek/Esnek Olmayan Çarpışmalar)",
-    "2. Ünite: Dönme Hareketi ve Açısal Momentum",
-    "3. Ünite: Basit Harmonik Hareket (Yaylı ve Basit Sarkaçlar)",
-    "4. Ünite: Dalga Mekaniği (Işıkta Kırınım, Girişim, Doppler Olayı)"
+    "1. Ünite: Dalgalar (Yay, Su, Ses ve Deprem Dalgaları, Dalga Parametreleri)",
+    "2. Ünite: Optik (Aydınlanma, Gölge, Aynalar, Kırılma, Mercekler, Renk)"
   ],
 
   // --- KİMYA ---
   "KİMYA 1": [
-    "1. Ünite: Kimya Bilimi (Kimya Disiplinleri, Laboratuvarda Güvenlik)",
-    "2. Ünite: Atom ve Periyodik Sistem (Atomun Yapısı, Periyodik Özellikler)",
-    "3. Ünite: Kimyasal Türler Arası Etkileşimler (İyonik, Kovalent ve Metalik Bağlar)"
+    "1. Ünite: Kimya Bilimi (Kimya Disiplinleri, Laboratuvar Güvenlik Kuralları)",
+    "2. Ünite: Atom ve Periyodik Sistem (Atom Modelleri, Atom Yapısı, Periyodik Özellikler)"
   ],
   "KİMYA 2": [
-    "1. Ünite: Maddenin Halleri (Katılar, Sıvılar, Gazlar, Plazma)",
-    "2. Ünite: Doğa ve Kimya (Su ve Hayat, Çevre Kimyası)",
-    "3. Ünite: Homojen ve Heterojen Karışımlar (Çözünürlük, Derişim)"
+    "1. Ünite: Kimyasal Türler Arası Etkileşimler (Güçlü ve Zayıf Etkileşimler, Hidrojen Bağı)",
+    "2. Ünite: Maddenin Halleri (Katılar, Sıvılar, Gazlar ve Plazma Özellikleri)",
+    "3. Ünite: Çevre Kimyası (Hava, Toprak ve Su Kirliliği, Yeşil Kimya)"
   ],
   "KİMYA 3": [
-    "1. Ünite: Kimyanın Temel Kanunları ve Hesaplamalar (Mol Hesapları)",
-    "2. Ünite: Asitler, Bazlar ve Tuzlar (Nötralleşme Tepkimeleri)",
-    "3. Ünite: Kimya Her Yerde (Evsel Temizlik Maddeleri, Polimerler, Kozmetikler)"
+    "1. Ünite: Kimyanın Temel Kanunları ve Hesaplamalar (Mol Kavramı, Tepkime Tipleri)",
+    "2. Ünite: Karışımlar (Homojen ve Heterojen Karışımlar, Ayırma Yöntemleri)"
   ],
   "KİMYA 4": [
-    "1. Ünite: Gazlar (Gaz Kanunları, İdeal Gaz Denklemi, Gaz Karışımları)",
-    "2. Ünite: Sıvı Çözeltiler ve Derişim Birimleri (Koligatif Özellikler)",
-    "3. Ünite: Kimyasal Tepkimelerde Enerji (Entalpi Değişimi, Ekzotermik/Endotermik)",
-    "4. Ünite: Tepkime Hızları ve Kimyasal Denge"
+    "1. Ünite: Asitler, Bazlar ve Tuzlar (pH Kavramı, Nötrleşme Tepkimeleri, İndikatörler)",
+    "2. Ünite: Kimya Her Yerde (Temizlik Maddeleri, Polimerler, Kozmetikler, İlaçlar)"
   ],
 
   // --- BİYOLOJİ ---
   "BİYOLOJİ 1": [
-    "1. Ünite: Yaşam Bilimi Biyoloji (Canlıların Ortak Özellikleri, Organik/İnorganik)",
-    "2. Ünite: Hücre (Hücre Zarı Yapısı, Organeller, Hücrelerin Karşılaştırılması)",
-    "3. Ünite: Canlılar Dünyası (Canlıların Sınıflandırılması, Alemler)"
+    "1. Ünite: Yaşam Bilimi Biyoloji (Canlıların Ortak Özellikleri, Organik ve İnorganik Bileşikler)",
+    "2. Ünite: Hücre (Hücre Zarı Yapısı, Organeller, Çekirdek, Madde Geçişleri)"
   ],
   "BİYOLOJİ 2": [
-    "1. Ünite: Hücre Bölünmeleri (Mitoz ve Eşeyli/Eşeysiz Üreme)",
-    "2. Ünite: Kalıtımın Genel İlkeleri (Mendel Genetiği, Kan Grupları, Mutasyonlar)",
-    "3. Ünite: Ekosistem Ekolojisi ve Güncel Çevre Sorunları"
+    "1. Ünite: Canlılar Dünyası (Sınıflandırma İlkeleri, Canlı Alemleri: Bakteriler, Arkeler, Protistler, Mantarlar, Bitkiler, Hayvanlar, Virüsler)"
   ],
   "BİYOLOJİ 3": [
-    "1. Ünite: İnsan Fizyolojisi (Denetleyici ve Düzenleyici Sistemler, Duyu Organları)",
-    "2. Ünite: Destek ve Hareket Sistemi, Sindirim Sistemi",
-    "3. Ünite: Dolaşım, Solunum ve Boşaltım Sistemleri"
+    "1. Ünite: Hücre Bölünmeleri (Mitoz ve Eşeysiz Üreme, Mayoz ve Eşeyli Üreme)",
+    "2. Ünite: Kalıtımın Genel İlkeleri (Mendel Genetiği, Kan Grupları, Cinsiyete Bağlı Kalıtım)"
   ],
   "BİYOLOJİ 4": [
-    "1. Ünite: Genden Proteine (Nükleik Asitlerin Keşfi, DNA ve RNA Yapısı)",
-    "2. Ünite: Protein Sentezi ve Genetik Şifre",
-    "3. Ünite: Bitki Biyolojisi (Bitkilerin Yapısı, Taşıma, Büyüme, Üreme)",
-    "4. Ünite: Canlılar ve Çevre (Fotosentez, Kemosentez, Hücresel Solunum)"
+    "1. Ünite: Ekosistem Ekolojisi (Besin Zinciri, Madde Döngüleri, Biyomlar)",
+    "2. Ünite: Güncel Çevre Sorunları ve İnsan (Biyoçeşitlilik ve Korunması)"
   ],
 
   // --- İNGİLİZCE & YABANCI DİL ---
@@ -323,44 +308,36 @@ export const lessonsMuster: Record<string, string[]> = {
 
   // --- DİN KÜLTÜRÜ VE AHLAK BİLGİSİ ---
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 1": [
-    "1. Ünite: Bilgi ve İnanç (İslamda Bilgi Kaynakları, İnanç Esasları)",
-    "2. Ünite: Din ve İslam (Dinin Tanımı, İslam'ın İnanç ve İbadet Boyutları)",
-    "3. Ünite: İslam ve İbadet (İbadet Kavramı, Temel İbadetler)"
+    "1. Ünite: Bilgi ve İnanç (İslam'da Bilgi Kaynakları, İnanç Esasları)",
+    "2. Ünite: Din ve İslam (Dinin Tanımı, İslam'ın İnanç ve İbadet Boyutları)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 2": [
-    "1. Ünite: Gençlik ve Değerler (Ahlaki Değerler, Adalet, Hikmet, İffet, Şecaat)",
-    "2. Ünite: Gönül Coğrafyamız (İslam Medeniyetinin İzleri)",
-    "3. Ünite: Allah İnsan İlişkisi (Dua, Tövbe, İbadet)"
+    "1. Ünite: İslam ve İbadet (İbadet Kavramı, Temel İbadetlerin Önemi)",
+    "2. Ünite: Gençlik ve Değerler (Ahlaki Değerler, Adalet, Hikmet, İffet, Şecaat)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 3": [
-    "1. Ünite: İslam ve İbadet (İbadette İhlas ve Samimiyet)",
-    "2. Ünite: Kur'an'a Göre Bazı Kavramlar (Cihat, Salih Amel, Takva)",
-    "3. Ünite: Kur'an'dan Mesajlar (Surelerin Tefsiri)"
+    "1. Ünite: Allah İnsan İlişkisi (Dua, Tövbe, İbadet Bağı)",
+    "2. Ünite: Hz. Muhammed ve Gençlik (Genç Sahabeler, İletişim)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 4": [
-    "1. Ünite: Gençlik ve Değerler (Toplumsal Bütünleşme ve Değerler)",
-    "2. Ünite: Hz. Muhammed ve Gençlik (Genç Sahabeler)",
-    "3. Ünite: Aile ve Din (Aile İçi İletişim, Evlilik Yapısı)"
+    "1. Ünite: Gönül Coğrafyamız (İslam Medeniyetinin İzleri)",
+    "2. Ünite: Din ve Hayat (Aile İçi İletişim, Ahlaki Sorumluluklar)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 5": [
-    "1. Ünite: Dünya ve Ahiret (Ölüm, Berzah, Kıyamet ve Ahiret Halleri)",
-    "2. Ünite: Kur'an'a Göre Hz. Muhammed (Peygamberlik Yönü, Örnek Şahsiyeti)",
-    "3. Ünite: Kur'an'da Bazı Kavramlar (Hidayet, İhsan, İhlas)"
+    "1. Ünite: Dünya ve Ahiret (Ölüm, Berzah, Kıyamet, Ahiret Halleri)",
+    "2. Ünite: Kur'an'a Göre Hz. Muhammed (Peygamberlik Yönü, Örnek Şahsiyeti)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 6": [
-    "1. Ünite: İslam ve Bilim (Bilim Tarihinde Müslüman Alimler ve Keşifler)",
-    "2. Ünite: Anadolu'da İslam (Tasavvufi Yorumlar: Yesevilik, Mevlevilik, Bektaşilik)",
-    "3. Ünite: Kur'an'dan Mesajlar (Ayet Mealleri ve Tefsirler)"
+    "1. Ünite: İnançla İlgili Meseleler (Modern İnanç Problemleri ve Akımlar)",
+    "2. Ünite: Yahudilik ve Hristiyanlık (Temel Özellikleri, İnanç Esasları)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 7": [
-    "1. Ünite: İslam ve Estetik (Sanat, Mimari, Musiki ve Hüsn-i Hat)",
-    "2. Ünite: Güncel Dini Meseleler (Tıbbi Gelişmeler, Gıda ve İktisadi Hayat)",
-    "3. Ünite: Dini Yorum Farklılıklarının Nedenleri ve Mezhepler"
+    "1. Ünite: İslam Düşüncesinde Tasavvufi Yorumlar (Yesevilik, Mevlevilik, Kadirilik)",
+    "2. Ünite: Güncel Dini Meseleler (Tıp, Gıda ve İktisat ile İlgili Güncel Konular)"
   ],
   "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ 8": [
-    "1. Ünite: İslam Düşüncesinde Tasavvufi Yorumlar ve Ahlak",
-    "2. Ünite: Günümüz Dini Akımları ve Modern Dünya Sorunları",
-    "3. Ünite: İslam ve Barış (Toplumsal Barış, Çevre Bilinci ve Hayvan Sevgisi)"
+    "1. Ünite: Hint ve Çin Dinleri (Hinduizm, Budizm, Konfüçyüsçülük, Taoizm)",
+    "2. Ünite: İslam ve Estetik (Sanat, Mimari, Hüsn-i Hat, Musiki)"
   ],
 
   // --- FELSEFE ---
