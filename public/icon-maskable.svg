@@ -1,26 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#4f46e5;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-    </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3" />
-    </filter>
-  </defs>
-  <!-- Full square background for maskable compliance -->
-  <rect width="512" height="512" rx="0" fill="url(#bgGrad)" />
-  
-  <!-- Outer glowing rings -->
-  <circle cx="256" cy="256" r="160" fill="none" stroke="white" stroke-width="4" stroke-opacity="0.15" />
+  <!-- Solid pink background matching the application theme (maskable needs square edges) -->
+  <rect width="512" height="512" rx="0" fill="#ffe5ec" />
 
-  <!-- Main Notification Group scaled slightly to fit in the 80% safe zone -->
-  <g filter="url(#dropShadow)" transform="translate(138, 138) scale(0.92)">
-    <!-- Bell Icon -->
-    <path d="M128 32 C119.2 32 112 39.2 112 48 L112 60.8 C77.4 72.6 52 105.7 52 144 L52 234 L22 264 C16 270 20.3 280 29 280 L227 280 C235.7 280 240 270 234 264 L204 234 L204 144 C204 105.7 178.6 72.6 144 60.8 L144 48 C144 39.2 136.8 32 128 32 Z M128 328 C150.1 328 168 310.1 168 288 L88 288 C88 310.1 105.9 328 128 328 Z" fill="#ffffff" />
+  <!-- Hello Kitty Head and Face Group -->
+  <g transform="translate(0, 20)">
+    <!-- Ears -->
+    <!-- Left Ear -->
+    <path d="M 140 180 L 100 80 Q 150 110 200 130 Z" fill="#ffffff" stroke="#1a1a1a" stroke-width="12" stroke-linejoin="round" />
+    <!-- Right Ear -->
+    <path d="M 372 180 L 412 80 Q 362 110 312 130 Z" fill="#ffffff" stroke="#1a1a1a" stroke-width="12" stroke-linejoin="round" />
     
-    <!-- Red notification dot -->
-    <circle cx="196" cy="76" r="20" fill="#ef4444" stroke="#ffffff" stroke-width="4" />
+    <!-- Head Base (White Ellipse) -->
+    <ellipse cx="256" cy="240" rx="170" ry="125" fill="#ffffff" stroke="#1a1a1a" stroke-width="12" />
+    
+    <!-- Eyes -->
+    <ellipse cx="170" cy="230" rx="12" ry="18" fill="#1a1a1a" />
+    <ellipse cx="342" cy="230" rx="12" ry="18" fill="#1a1a1a" />
+    
+    <!-- Nose (Yellow) -->
+    <ellipse cx="256" cy="260" rx="18" ry="13" fill="#ffd166" stroke="#1a1a1a" stroke-width="6" />
+    
+    <!-- Whiskers -->
+    <!-- Left Whiskers -->
+    <line x1="110" y1="210" x2="50" y2="200" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    <line x1="100" y1="235" x2="35" y2="235" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    <line x1="110" y1="260" x2="50" y2="270" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    
+    <!-- Right Whiskers -->
+    <line x1="402" y1="210" x2="462" y2="200" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    <line x1="412" y1="235" x2="477" y2="235" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    <line x1="402" y1="260" x2="462" y2="270" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round" />
+    
+    <!-- Hello Kitty Bow (Left Ear side) -->
+    <g transform="translate(140, 100)">
+      <!-- Left loop -->
+      <ellipse cx="-25" cy="0" rx="30" ry="25" fill="#ff4b6c" stroke="#1a1a1a" stroke-width="10" transform="rotate(-15 -25 0)" />
+      <!-- Right loop -->
+      <ellipse cx="25" cy="0" rx="30" ry="25" fill="#ff4b6c" stroke="#1a1a1a" stroke-width="10" transform="rotate(15 25 0)" />
+      <!-- Center knot -->
+      <circle cx="0" cy="0" r="16" fill="#ff4b6c" stroke="#1a1a1a" stroke-width="10" />
+    </g>
+  </g>
+
+  <!-- Pink Notification Bell in Top-Right Corner -->
+  <g transform="translate(370, 40)" filter="drop-shadow(0px 8px 12px rgba(244,63,94,0.4))">
+    <!-- Bell shape background border/fill -->
+    <circle cx="50" cy="50" r="45" fill="#ff4b6c" stroke="#ffffff" stroke-width="8" />
+    <!-- Bell Icon drawing -->
+    <path d="M50 22 C46.7 22 44 24.7 44 28 L44 32.8 C31 37.2 21.5 49.6 21.5 64 L21.5 73 L15.5 79 C13.3 81.2 14.9 85 18 85 L82 85 C85.1 85 86.7 81.2 84.5 79 L78.5 73 L78.5 64 C78.5 49.6 69 37.2 56 32.8 L56 28 C56 24.7 53.3 22 50 22 Z M50 93 C58.3 93 65 86.3 65 78 L35 78 C35 86.3 41.7 93 50 93 Z" fill="#ffffff" transform="scale(0.7) translate(22, 22)" />
   </g>
 </svg>
