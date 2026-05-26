@@ -26,6 +26,17 @@ export default async function Home() {
     try {
       announcement = await scrapeAnnouncement();
       await redis.set(lastAnnouncementKey, announcement);
+      // Synchronize lastChecked timestamp with the seeding event
+      lastChecked = new Date().toLocaleString('tr-TR', {
+        timeZone: 'Europe/Istanbul',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      await redis.set(lastCheckedKey, lastChecked);
     } catch (scrapeError) {
       console.error('Server side seeding scraper failed:', scrapeError);
       // Fallback object to prevent server crash if MEB is offline during deployment

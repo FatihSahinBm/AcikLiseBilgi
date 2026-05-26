@@ -356,8 +356,8 @@ export function extractDeadline(title: string, description: string): Date | null
 
   const dates: Date[] = [];
   
-  // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (Constrained to years 2026-2039 or 26-39)
-  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|2[6-9]|3[0-9])(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
+  // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (Constrained to years 2025-2039 or 25-39)
+  const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|2[5-9]|3[0-9])(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
   let match;
   while ((match = numericRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
@@ -371,7 +371,7 @@ export function extractDeadline(title: string, description: string): Date | null
   }
 
   // 2. Match DD MonthName [Year] (Turkish textual dates, e.g. "15 Haziran 2026" or "15 Haziran 26" or "15 Haziran")
-  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|2[6-9]|3[0-9]))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
+  const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|2[5-9]|3[0-9]))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
   while ((match = textRegex.exec(combinedText)) !== null) {
     const day = parseInt(match[1], 10);
     const monthName = match[2].toLocaleLowerCase('tr-TR')

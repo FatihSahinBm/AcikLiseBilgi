@@ -85,22 +85,21 @@ export async function GET(request: NextRequest) {
     let reminderResult: any = null;
 
     if (announcementType !== 'none' && deadline) {
-      // Calculate remaining days in Turkey timezone (GMT+3) safely without relying on toLocaleString parsing
+      // Calculate remaining days in Turkey timezone (GMT+3) safely using UTC to avoid server timezone drift
       const nowUTC = Date.now();
       const turkeyOffsetMs = 3 * 60 * 60 * 1000;
       const turkeyTime = new Date(nowUTC + turkeyOffsetMs);
-      const today = new Date(
+      const todayMs = Date.UTC(
         turkeyTime.getUTCFullYear(),
         turkeyTime.getUTCMonth(),
         turkeyTime.getUTCDate()
       );
       
-      const deadlineDate = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
-      const diffTime = deadlineDate.getTime() - today.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      const deadlineMs = Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+      const diffDays = Math.round((deadlineMs - todayMs) / (1000 * 60 * 60 * 24));
       
       reminderDaysRemaining = diffDays;
-      console.log(`Announcement type: ${announcementType}, Deadline: ${deadlineDate.toISOString()}, days remaining: ${diffDays}`);
+      console.log(`Announcement type: ${announcementType}, Deadline: ${new Date(deadlineMs).toISOString()}, days remaining: ${diffDays}`);
 
       // Self-healing, bracket-based reminders
       let targetTier: '7d' | '3d' | '1d' | null = null;

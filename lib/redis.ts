@@ -24,6 +24,14 @@ class InMemoryMockRedis implements IRedisClient {
   async set(key: string, value: any, options?: { ex?: number }): Promise<'OK' | null> {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     this.store.set(key, stringValue);
+    
+    // Honor TTL expiry in development mode
+    if (options?.ex && options.ex > 0) {
+      setTimeout(() => {
+        this.store.delete(key);
+      }, options.ex * 1000);
+    }
+    
     return 'OK';
   }
 

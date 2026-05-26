@@ -369,7 +369,7 @@ export default function Dashboard({
     if (!OneSignal) return;
 
     OneSignal.push(async () => {
-      const currentPermission = OneSignal.Notifications.permission;
+      const currentPermission = OneSignal.Notifications?.permission;
       
       // Get device push subscription ID
       const subscription = OneSignal.User?.PushSubscription;
@@ -388,6 +388,11 @@ export default function Dashboard({
       }
 
       setPermission(permissionState);
+
+      // Auto-expand settings panel if notifications are not yet granted
+      if (permissionState !== 'granted') {
+        setIsSettingsExpanded(true);
+      }
 
       // Force explicit OneSignal subscription registration if permission is granted but ID is missing
       if (permissionState === 'granted' && !hasSubscription) {
