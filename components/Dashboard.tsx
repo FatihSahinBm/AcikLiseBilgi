@@ -1136,7 +1136,7 @@ export default function Dashboard({
                 )}
               </div>
               <div 
-                className="text-sm text-zinc-650 leading-relaxed whitespace-pre-wrap animate-fade-in"
+                className="text-sm text-zinc-650 leading-relaxed whitespace-pre-wrap animate-fade-in description-content"
                 dangerouslySetInnerHTML={{ __html: activeAnnouncement.description }}
               />
             </div>

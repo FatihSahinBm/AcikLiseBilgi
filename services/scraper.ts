@@ -108,10 +108,10 @@ function highlightImportantTerms(text: string): string {
     .replace(/'/g, '&#039;');
 
   // Class for large bold headings and date ranges
-  const highlightClass = "font-black text-pink-700 text-[16px] sm:text-[18px] bg-pink-100/60 px-1.5 py-0.5 rounded border border-pink-200/50 shadow-sm underline decoration-pink-300 decoration-2 underline-offset-4";
+  const highlightClass = "font-black text-pink-700 text-[16px] sm:text-[18px] bg-pink-100/60 px-1.5 py-0.5 rounded border border-pink-200/50 shadow-sm no-underline";
   
   // Class for regular key terms
-  const termClass = "font-extrabold text-pink-650 text-[15px] sm:text-[16px] underline decoration-pink-300 decoration-2 underline-offset-4";
+  const termClass = "font-extrabold text-pink-650 text-[15px] sm:text-[16px] no-underline";
 
   // 1. Highlight specific header + date ranges:
   // E.g., "Kayıt Yenileme Tarihleri: 15 Mayıs - 08 Haziran 2026"
@@ -305,10 +305,18 @@ export async function scrapeAnnouncement(
       }
     });
 
-    // 4. Extract Description
-    // Clean up consecutive empty lines but keep newlines for paragraph spacing
-    let rawContentText = $('.content').text().trim();
-    rawContentText = rawContentText.replace(/\n\s*\n+/g, '\n\n').replace(/[ \t]+/g, ' ');
+    const contentClone = $('.content').clone();
+    contentClone.find('.content-image, .date, .info-item, .info-box, .info, .baslik, h1, h2, h3, script, style').remove();
+    let rawContentText = contentClone.text().trim();
+    
+    // Clean up any remaining view count/dates metadata from the text (supporting newlines)
+    rawContentText = rawContentText
+      .replace(/^\s*\d+\s*$/gm, '') // Remove lone ID/view count numbers
+      .replace(/Güncelleme\s*:\s*\r?\n?\s*\d{2}\.\d{2}\.\d{4}\s*\d{2}:\d{2}/gi, '')
+      .replace(/Yayın\s*:\s*\r?\n?\s*\d{2}\.\d{2}\.\d{4}\s*\d{2}:\d{2}/gi, '')
+      .replace(/\n\s*\n+/g, '\n\n')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
 
     let description = rawContentText;
     if (description.length > 800) {

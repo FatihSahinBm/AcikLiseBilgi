@@ -17,3 +17,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.description-content strong,
+.description-content span,
+.description-content a {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+}
+
