@@ -27,7 +27,7 @@ import {
   ClipboardList,
   GraduationCap
 } from 'lucide-react';
-import { getSyllabusForCourse } from '@/constants/lessonsMuster';
+import { getSyllabusForCourse, lessonsMuster } from '@/constants/lessonsMuster';
 
 interface FileAttachment {
   title: string;
@@ -299,6 +299,9 @@ export default function Dashboard({
   const [openCourseIndex, setOpenCourseIndex] = useState<number | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [toast, setToast] = useState<{ success: boolean; message: string } | null>(null);
+  // Manuel ders arama / ekleme
+  const [manualSearch, setManualSearch] = useState<string>('');
+  const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
 
   // Load saved courses on initial mount
   useEffect(() => {
@@ -948,26 +951,58 @@ export default function Dashboard({
       [/YABANCI\s+DİL/gi, "İNGİLİZCE"],
       [/YABANCI\s+DIL/gi, "İNGİLİZCE"],
       [/INGILIZCE/gi, "İNGİLİZCE"],
+      [/ALMANCA/gi, "İNGİLİZCE"],
+      [/FRANSIZCA/gi, "İNGİLİZCE"],
+      [/SEÇMELİ\s+YABANCI\s+DİL/gi, "SEÇMELİ İNGİLİZCE"],
+      [/SEÇMELİ\s+YABANCI\s+DIL/gi, "SEÇMELİ İNGİLİZCE"],
       [/DIN\s+KULTURU\s+VE\s+AHLAK\s+BILGISI/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
       [/DIN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
       [/DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
-      [/DİN\s+KÜLTÜRÜ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
-      [/DIN\s+KULTURU/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      // Negative lookahead: sadece tam form yoksa kısmi eşleşme yap
+      [/DİN\s+KÜLTÜRÜ(?!\s+VE\s+AHLAK)/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/DIN\s+KULTURU(?!\s+VE\s+AHLAK)/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
       [/T\.C\.\s+INKILAP/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
       [/T\.C\.\s+İNKILAP/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
       [/INKILAP\s+TARIHI/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
       [/İNKILAP\s+TARİHİ/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
       [/SAGLIK\s+BILGISI/gi, "SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ"],
       [/SAĞLIK\s+BİLGİSİ/gi, "SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ"],
-      [/SECMELI/gi, "SEÇMELİ"]
+      [/SECMELI/gi, "SEÇMELİ"],
+      [/SİYER/gi, "PEYGAMBERİMİZİN HAYATI"],
+      [/SIYER/gi, "PEYGAMBERİMİZİN HAYATI"],
+      [/AKAID/gi, "AKAİD"],
+      [/TEFSIR/gi, "TEFSİR"],
+      [/KELAM/gi, "KELAM"],
+      [/FIKIH/gi, "FIKIH"],
+      [/HITABET/gi, "HİTABET VE MESLEKİ UYGULAMA"],
+      [/HİTABET/gi, "HİTABET VE MESLEKİ UYGULAMA"],
+      [/DINLER\s+TARIHI/gi, "DİNLER TARİHİ"],
+      [/DİNLER\s+TARİHİ/gi, "DİNLER TARİHİ"],
+      [/OSMANLI\s+TURKCESI/gi, "OSMANLI TÜRKÇESİ"],
+      [/OSMANLI\s+TURKÇESİ/gi, "OSMANLI TÜRKÇESİ"],
+      [/OSMANLI\s+TÜRKÇESI/gi, "OSMANLI TÜRKÇESİ"],
+      [/PSIKOLOJI/gi, "PSİKOLOJİ"],
+      [/SOSYOLOJI/gi, "SOSYOLOJİ"],
+      [/MANTIK/gi, "MANTIK"],
+      [/ISLETME/gi, "İŞLETME"],
+      [/EKONOMI/gi, "EKONOMİ"],
+      [/GIRISIMCILIK/gi, "GİRİŞİMCİLİK"],
+      [/SANAT\s+TARIHI/gi, "SANAT TARİHİ"],
+      [/ASTRONOMI/gi, "ASTRONOMİ VE UZAY BİLİMLERİ"],
+      [/BILGI\s+KURAMI/gi, "BİLGİ KURAMI"],
+      [/PROJE\s+HAZIRLAMA/gi, "PROJE HAZIRLAMA"],
+      [/TURK\s+KULTUR/gi, "TÜRK KÜLTÜR VE MEDENİYET TARİHİ"],
+      [/CAGDAS\s+TURK/gi, "ÇAĞDAŞ TÜRK VE DÜNYA TARİHİ"],
+      [/TEMEL\s+DINI/gi, "TEMEL DİNİ BİLGİLER"],
+      [/PEYGAMBERIMIZIN/gi, "PEYGAMBERİMİZİN"]
     ];
 
     replacements.forEach(([regex, replacement]) => {
       cleanedText = cleanedText.replace(regex, replacement);
     });
 
-    // 3. Match using the standardized regex pattern
-    const pattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|SEÇMELİ\s+[A-ZÇĞİÖŞÜ]+)\s+\d+/gi;
+    // 3. Match using the standardized regex pattern (supports multi-word electives)
+    const pattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|OSMANLI\s+TÜRKÇESİ|FIKIH|TEFSİR|KELAM|AKAİD|SİYER|HİTABET\s+VE\s+MESLEKİ\s+UYGULAMA|DİNLER\s+TARİHİ|PSİKOLOJİ|SOSYOLOJİ|MANTIK|DEMOKRASİ\s+VE\s+İNSAN\s+HAKLARI|İŞLETME|EKONOMİ|GİRİŞİMCİLİK|SANAT\s+TARİHİ|ASTRONOMİ\s+VE\s+UZAY\s+BİLİMLERİ|BİLGİ\s+KURAMI|PROJE\s+HAZIRLAMA|TÜRK\s+KÜLTÜR\s+VE\s+MEDENİYET\s+TARİHİ|ÇAĞDAŞ\s+TÜRK\s+VE\s+DÜNYA\s+TARİHİ|TEMEL\s+DİNİ\s+BİLGİLER|PEYGAMBERİMİZİN\s+HAYATI|SEÇMELİ\s+[A-ZÇĞİÖŞÜ\s\.]+)\s+\d+/gi;
     
     let match;
     while ((match = pattern.exec(cleanedText)) !== null) {
@@ -987,7 +1022,7 @@ export default function Dashboard({
       const isRelevant = cleanLine.includes('ZORUNLU') || cleanLine.includes('MUAF') || cleanLine.includes('SEÇMELİ') || cleanLine.includes('SECMELI') || cleanLine.includes('ORTAK') || cleanLine.includes('DERS');
       
       // Also match the normalized pattern inside the line
-      const subPattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|SEÇMELİ\s+[A-ZÇĞİÖŞÜ]+)\s+\d+/gi;
+      const subPattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|OSMANLI\s+TÜRKÇESİ|FIKIH|TEFSİR|KELAM|AKAİD|SİYER|HİTABET\s+VE\s+MESLEKİ\s+UYGULAMA|DİNLER\s+TARİHİ|PSİKOLOJİ|SOSYOLOJİ|MANTIK|DEMOKRASİ\s+VE\s+İNSAN\s+HAKLARI|İŞLETME|EKONOMİ|GİRİŞİMCİLİK|SANAT\s+TARİHİ|ASTRONOMİ\s+VE\s+UZAY\s+BİLİMLERİ|BİLGİ\s+KURAMI|PROJE\s+HAZIRLAMA|TÜRK\s+KÜLTÜR\s+VE\s+MEDENİYET\s+TARİHİ|ÇAĞDAŞ\s+TÜRK\s+VE\s+DÜNYA\s+TARİHİ|TEMEL\s+DİNİ\s+BİLGİLER|PEYGAMBERİMİZİN\s+HAYATI|SEÇMELİ\s+[A-ZÇĞİÖŞÜ\s\.]+)\s+\d+/gi;
       const matches = cleanLine.match(subPattern);
       if (matches) {
         matches.forEach(m => {
@@ -1064,6 +1099,33 @@ export default function Dashboard({
       setToast({ success: true, message: 'Dersleriniz sıfırlandı. 🔄' });
       setTimeout(() => setToast(null), 3000);
     }
+  };
+
+  // Tek ders sil
+  const handleDeleteCourse = (idx: number) => {
+    const updated = courses.filter((_, i) => i !== idx);
+    setCourses(updated);
+    localStorage.setItem('aol_user_courses', JSON.stringify(updated));
+    if (openCourseIndex === idx) setOpenCourseIndex(null);
+    setToast({ success: true, message: 'Ders listenizden kaldırıldı. 🗑️' });
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  // Manuel ders ekle
+  const handleManualAddCourse = (courseName: string) => {
+    const trimmed = courseName.toUpperCase().replace(/\s+/g, ' ').trim();
+    if (!trimmed) return;
+    if (courses.includes(trimmed)) {
+      setToast({ success: false, message: 'Bu ders zaten listenizde mevcut!' });
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    const updated = [...courses, trimmed];
+    setCourses(updated);
+    localStorage.setItem('aol_user_courses', JSON.stringify(updated));
+    setManualSearch('');
+    setToast({ success: true, message: `"${trimmed}" listenize eklendi. 🌸` });
+    setTimeout(() => setToast(null), 2500);
   };
 
   return (
@@ -1582,6 +1644,64 @@ export default function Dashboard({
                 </button>
               </div>
 
+              {/* Manuel Ders Ekle Paneli */}
+              <div className="bg-white/80 border border-pink-200/50 rounded-2xl p-4 backdrop-blur-md shadow-sm space-y-3">
+                <button
+                  onClick={() => setShowManualSearch(!showManualSearch)}
+                  className="w-full flex items-center justify-between text-xs font-bold text-pink-600 cursor-pointer select-none"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <GraduationCap className="w-4 h-4 text-pink-500" />
+                    Manuel Ders Ekle / Ara 🔍
+                  </span>
+                  {showManualSearch ? <ChevronUp className="w-4 h-4 text-pink-400" /> : <ChevronDown className="w-4 h-4 text-pink-400" />}
+                </button>
+
+                {showManualSearch && (
+                  <div className="space-y-2 animate-fade-in">
+                    <input
+                      type="text"
+                      value={manualSearch}
+                      onChange={(e) => setManualSearch(e.target.value)}
+                      placeholder="Ders adı ara veya yaz... (ör: MATEMATİK 3)"
+                      className="w-full bg-white border border-pink-200 focus:border-pink-400 focus:ring-1 focus:ring-pink-300 rounded-xl px-3 py-2.5 text-xs text-zinc-700 placeholder-zinc-400 outline-none transition-all"
+                    />
+                    {/* Dropdown suggestions from lessonsMuster keys */}
+                    {manualSearch.trim().length >= 2 && (() => {
+                      const query = manualSearch.toUpperCase().replace(/\s+/g, ' ').trim();
+                      const suggestions = Object.keys(lessonsMuster).filter(k => k.includes(query) && !courses.includes(k));
+                      if (suggestions.length === 0) return (
+                        <p className="text-[11px] text-zinc-400 text-center py-2">Eşleşen resmi ders bulunamadı. Yine de ekleyebilirsiniz.</p>
+                      );
+                      return (
+                        <ul className="border border-pink-100 rounded-xl overflow-hidden divide-y divide-pink-50 max-h-48 overflow-y-auto">
+                          {suggestions.map(s => (
+                            <li key={s}>
+                              <button
+                                onClick={() => handleManualAddCourse(s)}
+                                className="w-full text-left px-3 py-2 text-xs text-zinc-700 hover:bg-pink-50 hover:text-pink-700 transition-colors cursor-pointer font-medium"
+                              >
+                                {s}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
+                    {/* Add custom button */}
+                    {manualSearch.trim().length >= 2 && (
+                      <button
+                        onClick={() => handleManualAddCourse(manualSearch.trim())}
+                        className="w-full flex items-center justify-center gap-2 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all active:scale-[0.99] cursor-pointer"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        "{manualSearch.trim().toUpperCase()}" Dersini Ekle
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Accordion list */}
               <div className="space-y-3.5">
                 {courses.map((course, idx) => {
@@ -1613,6 +1733,14 @@ export default function Dashboard({
                           ) : (
                             <ChevronDown className="w-4 h-4 text-pink-400" />
                           )}
+                          {/* Per-course delete button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCourse(idx); }}
+                            title="Dersi listeden kaldır"
+                            className="p-1 rounded-lg hover:bg-rose-50 text-zinc-300 hover:text-rose-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </button>
 

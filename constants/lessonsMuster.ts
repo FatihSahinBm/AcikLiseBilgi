@@ -39,7 +39,7 @@ export const lessonsMuster: Record<string, string[]> = {
   ],
   "TÜRK DİLİ VE EDEBİYATI 7": [
     "1. Ünite: Giriş (Edebiyat ve Toplum İlişkisi, Edebi Akımlar)",
-    "2. Ünite: Hikaye (Cumhurökkeş 1980 Sonrası ve Bireyin İç Dünyası)",
+    "2. Ünite: Hikaye (Cumhuriyet Dönemi 1980 Sonrası ve Bireyin İç Dünyası)",
     "3. Ünite: Şiir (Cumhuriyet Dönemi 1960 Sonrası, Halk Şiiri ve Garip Dışı Şiir)",
     "4. Ünite: Roman (Cumhuriyet Dönemi Bireysel, Toplumcu, Tarihsel Roman)"
   ],
@@ -358,6 +358,257 @@ export const lessonsMuster: Record<string, string[]> = {
     "1. Ünite: Kişisel ve Toplumsal Sağlık (Sağlıklı Yaşam Bilinci, Hijyen, Beslenme)",
     "2. Ünite: İlk Yardım (Temel Yaşam Desteği, Kanamalar ve Yaralanmalar)",
     "3. Ünite: Trafik Kültürü ve Güvenliği (Trafik Kuralları, Yaya ve Sürücü Hakları)"
+  ],
+
+  // --- SOSYAL VE DİĞER SEÇMELİ DERSLER (BASE KEYS) ---
+  "PSİKOLOJİ 1": [
+    "1. Ünite: Psikoloji Bilimini Tanıyalım (Konusu, Yöntemleri, Alt Dalları)",
+    "2. Ünite: Psikolojinin Temel Süreçleri (Duyum, Algı, Gelişim)",
+    "3. Ünite: Öğrenme, Bellek, Düşünme ve Zeka"
+  ],
+  "SOSYOLOJİ 1": [
+    "1. Ünite: Sosyolojiye Giriş (Toplum Biliminin Konusu ve Yöntemleri)",
+    "2. Ünite: Birey ve Toplum (Sosyalleşme, Sosyal Rol ve Statü)",
+    "3. Ünite: Toplumsal Yapı, Tabakalaşma ve Toplumsal Hareketlilik"
+  ],
+  "SOSYOLOJİ 2": [
+    "1. Ünite: Toplumsal Değişme, Gelişme ve Modernleşme",
+    "2. Ünite: Toplumsal Kurumlar (Aile, Eğitim, Ekonomi, Siyaset, Din)",
+    "3. Ünite: Kültür ve Toplumsal Kurumların Değişimi"
+  ],
+  "MANTIK 1": [
+    "1. Ünite: Mantığa Giriş (Akıl Yürütme ve Düşünme İlkeleri)",
+    "2. Ünite: Klasik Mantık (Kavramlar, Terimler, Önermeler, Akıl Yürütme ve Kıyaslar)"
+  ],
+  "MANTIK 2": [
+    "1. Ünite: Sembolik Mantık (Önermeler Mantığı ve Niceleme Mantığı)",
+    "2. Ünite: Metodoloji ve Mantığın Uygulama Alanları"
+  ],
+  "DEMOKRASİ VE İNSAN HAKLARI 1": [
+    "1. Ünite: Demokrasinin Tarihsel Gelişimi ve Temel İlkeleri",
+    "2. Ünite: İnsan Haklarının Korunması, Hak ve Özgürlükler",
+    "3. Ünite: Demokratik Katılım, Sorumluluk ve Vatandaşlık Bilinci"
+  ],
+  "İŞLETME 1": [
+    "1. Ünite: İşletmenin Temel Amaçları ve Kavramları",
+    "2. Ünite: İşletmelerin Sınıflandırılması ve Kuruluş Aşamaları",
+    "3. Ünite: Yönetim, Finans ve Pazarlama Süreçleri"
+  ],
+  "EKONOMİ 1": [
+    "1. Ünite: Ekonominin Konusu, Temel İhtiyaçlar ve Fayda",
+    "2. Ünite: Arz, Talep, Fiyat Mekanizması ve Piyasa Dengesi",
+    "3. Ünite: Para, Enflasyon, Bankacılık ve Dış Ticaret"
+  ],
+  "GİRİŞİMCİLİK 1": [
+    "1. Ünite: Girişimcilik Kavramı ve Girişimcinin Özellikleri",
+    "2. Ünite: İş Fikri Geliştirme ve İş Planı Hazırlama",
+    "3. Ünite: Girişimcilikte Pazarlama, Finansman ve Risk Yönetimi"
+  ],
+  "SANAT TARİHİ 1": [
+    "1. Ünite: Sanat Tarihine Giriş ve Tarih Öncesi Sanat",
+    "2. Ünite: İlk Türk ve İslam Devletleri Sanatı (Karahanlı, Gazneli, Selçuklu)",
+    "3. Ünite: Osmanlı Dönemi Mimarisi ve Süsleme Sanatı"
+  ],
+  "SANAT TARİHİ 2": [
+    "1. Ünite: Avrupa Sanatı (Rönesans, Barok, Rokoko ve Modern Sanat)",
+    "2. Ünite: Cumhuriyet Dönemi Türk Mimarlığı, Resmi ve Heykeli"
+  ],
+  "ASTRONOMİ VE UZAY BİLİMLERİ 1": [
+    "1. Ünite: Astronominin Konusu, Tarihsel Gelişimi ve Gözlemevleri",
+    "2. Ünite: Evren, Galaksiler, Yıldızlar ve Güneş Sistemi Yapısı",
+    "3. Ünite: Uzay Teknolojileri, Yapay Uydular ve Roket Sistemleri"
+  ],
+  "BİLGİ KURAMI 1": [
+    "1. Ünite: Bilgi Türleri (Gündelik, Dini, Sanatsal, Felsefi ve Bilimsel)",
+    "2. Ünite: Bilginin Kaynağı, Sınırları ve Doğruluk Ölçütleri"
+  ],
+  "PROJE HAZIRLAMA 1": [
+    "1. Ünite: Araştırma Yöntemleri ve Bilimsel Proje Kavramı",
+    "2. Ünite: Proje Hazırlama Adımları (Planlama, Veri Analizi, Raporlama)",
+    "3. Ünite: Proje Sunumu ve Değerlendirme Teknikleri"
+  ],
+  "TÜRK KÜLTÜR VE MEDENİYET TARİHİ 1": [
+    "1. Ünite: Türklerde Devlet Teşkilatı (Hunlardan Osmanlıya)",
+    "2. Ünite: Türklerde Toplum Yapısı, Aile ve Sosyal Yaşam",
+    "3. Ünite: Türk Hukuk Tarihi ve Adalet Kurumları"
+  ],
+  "TÜRK KÜLTÜR VE MEDENİYET TARİHİ 2": [
+    "1. Ünite: Türklerde Ekonomi, Ticaret ve Toprak Sistemi",
+    "2. Ünite: Türk Eğitim ve Bilim Tarihi",
+    "3. Ünite: Türk Sanatı, Sporu ve Gündelik Yaşam Kültürü"
+  ],
+  "ÇAĞDAŞ TÜRK VE DÜNYA TARİHİ 1": [
+    "1. Ünite: İki Dünya Savaşı Arasındaki Gelişmeler (Büyük Buhran, Faşizm, SSCB)",
+    "2. Ünite: İkinci Dünya Savaşı (Savaşın Nedenleri, Gelişimi ve Sonuçları)"
+  ],
+  "ÇAĞDAŞ TÜRK VE DÜNYA TARİHİ 2": [
+    "1. Ünite: Soğuk Savaş Dönemi ve Detant Süreci",
+    "2. Ünite: Küreselleşen Dünya ve 21. Yüzyıl Başlarında Türkiye ile Dünya"
+  ],
+  "TEMEL DİNİ BİLGİLER 1": [
+    "1. Ünite: İslam'ın İnanç Esasları (Tevhid, Nübüvvet, Ahiret)",
+    "2. Ünite: İslam'da İbadetler ve Temel Pratikler"
+  ],
+  "TEMEL DİNİ BİLGİLER 2": [
+    "1. Ünite: İslam Ahlakı, Toplumsal Sorumluluklar ve Helaller/Haramlar",
+    "2. Ünite: İslam'ın Kaynakları (Kur'an ve Sünnet)"
+  ],
+  "PEYGAMBERİMİZİN HAYATI 1": [
+    "1. Ünite: Hz. Muhammed'in Doğumu, Ailesi ve Çocukluk Dönemi",
+    "2. Ünite: Mekke Dönemi (Vahiy Süreci, Müslümanların Karşılaştığı Zorluklar, Hicret)"
+  ],
+  "PEYGAMBERİMİZİN HAYATI 2": [
+    "1. Ünite: Medine Dönemi (Toplumsal Sözleşme, İslam Devletinin Kuruluşu, Savaşlar)",
+    "2. Ünite: Peygamberimizin Aile Yaşamı ve Örnek Ev Babalığı"
+  ],
+  "PEYGAMBERİMİZİN HAYATI 3": [
+    "1. Ünite: Peygamberimizin Tebliğ Metotları ve İnsan İlişkileri",
+    "2. Ünite: Peygamberimizin Örnek Şahsiyeti ve Liderlik Vasıfları"
+  ],
+  "PEYGAMBERİMİZİN HAYATI 4": [
+    "1. Ünite: Peygamberimizin Gençlerle İletişimi ve Onlara Verdiği Görevler",
+    "2. Ünite: Veda Haccı, Veda Hutbesi ve Peygamberimizin Vefatı"
+  ],
+
+  // --- İLERİ DÜZET FEN BİLİMLERİ SEÇMELİ DERSLERİ ---
+  "FİZİK 5": [
+    "1. Ünite: Vektörler ve Bağıl Hareket",
+    "2. Ünite: Newton'ın Hareket Yasaları",
+    "3. Ünite: Bir Boyutta Sabit İvmeli Hareket (Atışlar)",
+    "4. Ünite: İki Boyutta Hareket, Enerji ve Hareket",
+    "5. Ünite: İtme ve Çizgisel Momentum, Tork ve Denge, Basit Makineler"
+  ],
+  "FİZİK 6": [
+    "1. Ünite: Elektriksel Kuvvet ve Elektriksel Alan",
+    "2. Ünite: Elektriksel Potansiyel, Düzgün Elektrik Alan ve Sığa",
+    "3. Ünite: Manyetik Alan ve Manyetik Kuvvet",
+    "4. Ünite: Elektromanyetik İndüklenme, Alternatif Akım ve Transformatörler"
+  ],
+  "FİZİK 7": [
+    "1. Ünite: Düzgün Çembersel Hareket ve Dönme Hareketi",
+    "2. Ünite: Açısal Momentum, Kütle Çekim Kuvveti ve Kepler Kanunları",
+    "3. Ünite: Basit Harmonik Hareket",
+    "4. Ünite: Dalga Mekaniği (Işıkta Kırınım, Girişim ve Doppler Olayı, Elektromanyetik Dalgalar)"
+  ],
+  "FİZİK 8": [
+    "1. Ünite: Atom Fiziğine Giriş ve Radyoaktivite",
+    "2. Ünite: Özel Görelilik ve Modern Fizik (Kara Cisim Işıması, Fotoelektrik ve Compton)",
+    "3. Ünite: Modern Fiziğin Teknolojideki Uygulamaları (Görüntüleme Teknolojileri, Yarı İletkenler)"
+  ],
+  "KİMYA 5": [
+    "1. Ünite: Modern Atom Teorisi (Kuantum Sayıları, Elektron Dizilimleri)",
+    "2. Ünite: Gazlar (Gaz Yasaları, Kinetik Teori, Gaz Karışımları)",
+    "3. Ünite: Sıvı Çözeltiler ve Çözünürlük (Derişim Birimleri, Koligatif Özellikler)"
+  ],
+  "KİMYA 6": [
+    "1. Ünite: Kimyasal Tepkimelerde Enerji (Tepkime Entalpisi, Hess Yasası)",
+    "2. Ünite: Kimyasal Tepkimelerde Hız (Çarpışma Teorisi, Hızı Etkileyen Faktörler)",
+    "3. Ünite: Kimyasal Tepkimelerde Denge (Sulu Çözelti Dengeleri, Asit-Baz ve KÇÇ)"
+  ],
+  "KİMYA 7": [
+    "1. Ünite: Kimya ve Elektrik (Redoks, Piller, Elektroliz ve Korozyon)",
+    "2. Ünite: Karbon Kimyasına Giriş (Hibritleşme ve Molekül Geometrileri)"
+  ],
+  "KİMYA 8": [
+    "1. Ünite: Organik Bileşikler (Alkanlar, Alkenler, Alkinler, Alkoller, Eterler, Karbonil ve Esterler)",
+    "2. Ünite: Enerji Kaynakları ve Bilimsel Gelişmeler (Fosil Yakıtlar, Nanoteknoloji)"
+  ],
+  "BİYOLOJİ 5": [
+    "1. Ünite: İnsan Fizyolojisi - Denetleyici ve Düzenleyici Sistemler, Duyu Organları",
+    "2. Ünite: İnsan Fizyolojisi - Destek ve Hareket Sistemi, Sindirim Sistemi",
+    "3. Ünite: İnsan Fizyolojisi - Dolaşım Sistemi ve Bağışıklık, Solunum Sistemi"
+  ],
+  "BİYOLOJİ 6": [
+    "1. Ünite: İnsan Fizyolojisi - Üriner (Boşaltım) Sistem, Üreme Sistemi ve Embriyonik Gelişim",
+    "2. Ünite: Komünite Ekolojisi (Tür İçi ve Türler Arası Etkileşimler)",
+    "3. Ünite: Popülasyon Ekolojisi (Popülasyon Dinamikleri)"
+  ],
+  "BİYOLOJİ 7": [
+    "1. Ünite: Genden Proteine (Nükleik Asitlerin Yapısı, Replikasyon, Protein Sentezi)",
+    "2. Ünite: Canlılarda Enerji Dönüşümleri (Fotosentez, Kemosentez ve Hücresel Solunum)"
+  ],
+  "BİYOLOJİ 8": [
+    "1. Ünite: Bitki Biyolojisi (Bitkisel Dokular, Taşıma ve Eşeyli Üreme)",
+    "2. Ünite: Canlılar ve Çevre (Sürdürülebilirlik ve Çevre Sorunları)"
+  ],
+
+  // --- SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ ---
+  "SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ 2": [
+    "1. Ünite: Sağlık Hizmetleri ve Akılcı İlaç Kullanımı",
+    "2. Ünite: Bağımlılıkla Mücadele (Tütün, Alkol, Madde ve Teknoloji Bağımlılığı)",
+    "3. Ünite: Trafik Güvenliği ve Trafik Kazaları (Yasal Sorumluluklar ve Trafik Adabı)"
+  ],
+
+  // --- OSMANLI TÜRKÇESİ ---
+  "OSMANLI TÜRKÇESİ 1": [
+    "1. Ünite: Osmanlı Türkçesi Alfabesi (Harfler ve Başta/Ortada/Sonda Yazılışlar)",
+    "2. Ünite: Yazım Kuralları ve Türkçe Kelimelerin İmlası",
+    "3. Ünite: Kolay Metin Okumaları ve Pratik Yazım Egzersizleri"
+  ],
+  "OSMANLI TÜRKÇESİ 2": [
+    "1. Ünite: Arapça ve Farsça Kökenli Unsurlar, Kelime Yapıları",
+    "2. Ünite: Osmanlı Türkçesinde Kelime Türetme ve Tamlamalar",
+    "3. Ünite: Edebi ve Tarihi Metin Okumaları"
+  ],
+
+  // --- İSLAMİ İLİMLER & MESLEK DERSLERİ ---
+  "AKAİD 1": [
+    "1. Ünite: Akaid İlmi ve Konusu",
+    "2. Ünite: İslam'da İman Kavramı ve İmanın Esasları",
+    "3. Ünite: Allah'a İman ve Esma-i Hüsna",
+    "4. Ünite: Meleklere İman ve Meleklerin Görevleri"
+  ],
+  "AKAİD 2": [
+    "1. Ünite: Peygamberlere ve İlahi Kitaplara İman",
+    "2. Ünite: Ahiret Gününe İman, Berzah ve Kıyamet Halleri",
+    "3. Ünite: Kader ve Kazaya İman, İrade ve Tevekkül"
+  ],
+  "KELAM 1": [
+    "1. Ünite: Kelam İlmi (Tanımı, Konusu, Amacı, Doğuşu ve Tarihsel Gelişimi)",
+    "2. Ünite: Kelam İlminde Temel Meseleler (Bilgi Kaynakları, Varlık ve Hüküm)"
+  ],
+  "KELAM 2": [
+    "1. Ünite: İslam Düşüncesinde İtikadi ve Siyasi Mezhepler",
+    "2. Ünite: Kelam İlmi ve Güncel İnanç Problemleri (Ateizm, Deizm, Nihilizm)"
+  ],
+  "TEFSİR 1": [
+    "1. Ünite: Tefsir İlminin Tanımı, Amacı ve Önemi",
+    "2. Ünite: Kur'an-ı Kerim Tarihi (Vahiy Süreci, Mushaflaşma ve Çoğaltılma)",
+    "3. Ünite: Tefsir Tarihi ve Öncü Müfessirler"
+  ],
+  "TEFSİR 2": [
+    "1. Ünite: Tefsir Çeşitleri (Rivayet ve Dirayet Tefsirleri)",
+    "2. Ünite: Örnek Sure ve Ayet Tefsirleri (Fatiha, Bakara ve Yasin Sureleri)"
+  ],
+  "FIKIH 1": [
+    "1. Ünite: Fıkıh İlminin Tanımı, Kaynakları ve Gelişim Dönemleri",
+    "2. Ünite: Fıkıh Usulü ve Temel Hukuki İlkeler",
+    "3. Ünite: Taharet (Temizlik) ve Namaz İbadetinin Fıkhi Boyutları"
+  ],
+  "FIKIH 2": [
+    "1. Ünite: Oruç, Zekât, Hac ve Kurban İbadetlerinin Hükümleri",
+    "2. Ünite: İslam'da Aile Hukuku (Münakehat) ve Sosyal Hayat",
+    "3. Ünite: Günlük Hayat ve İktisat ile İlgili Fıkhi Hükümler"
+  ],
+  "HİTABET VE MESLEKİ UYGULAMA 1": [
+    "1. Ünite: Din Hizmetleri ve İletişim İlkeleri",
+    "2. Ünite: Dinî Hitabet ve Hatibin Nitelikleri",
+    "3. Ünite: Hutbe ve Vaaz Hazırlama/Sunma Metotları"
+  ],
+  "HİTABET VE MESLEKİ UYGULAMA 2": [
+    "1. Ünite: Din Hizmetlerinde Cami Musikisi (Ezan, Sala, Kamet)",
+    "2. Ünite: Dinî Merasimlerde Hitabet ve Dua Örnekleri",
+    "3. Ünite: Cami İçi ve Cami Dışı Din Hizmetleri Uygulamaları"
+  ],
+  "DİNLER TARİHİ 1": [
+    "1. Ünite: Dinler Tarihi İlminin Tanımı, Konusu ve Metotları",
+    "2. Ünite: Din Kavramı ve Dinin Kökeni",
+    "3. Ünite: İlahi Dinler - Yahudilik ve Hristiyanlık"
+  ],
+  "DİNLER TARİHİ 2": [
+    "1. Ünite: Hint Dinleri (Hinduizm, Budizm, Sihizm, Aynizm)",
+    "2. Ünite: Çin ve Japon Dinleri (Konfüçyüsçülük, Taoizm, Şintoizm)",
+    "3. Ünite: Diğer Dinler ve Geleneksel İnanç Sistemleri"
   ]
 };
 
@@ -378,14 +629,63 @@ export function getSyllabusForCourse(courseName: string): string[] {
   normalizedKey = normalizeTurkishSpelling(normalizedKey);
 
   // Check aliases
-  if (normalizedKey.startsWith("YABANCI DİL")) {
-    normalizedKey = normalizedKey.replace("YABANCI DİL", "İNGİLİZCE");
-  }
+  normalizedKey = normalizedKey
+    .replace(/\bYABANCI DİL\b/g, "İNGİLİZCE")
+    .replace(/\bALMANCA\b/g, "İNGİLİZCE")
+    .replace(/\bFRANSIZCA\b/g, "İNGİLİZCE")
+    .replace(/\bSİYER\b/g, "PEYGAMBERİMİZİN HAYATI");
 
+  // Exact Match Check
   if (lessonsMuster[normalizedKey]) {
     return lessonsMuster[normalizedKey];
   }
   
+  // Dynamic lookup for Elective (Seçmeli) versions:
+  // E.g. "SEÇMELİ MATEMATİK 1" -> "MATEMATİK 5"
+  // E.g. "SEÇMELİ FİZİK 1" -> "FİZİK 5"
+  // E.g. "SEÇMELİ BİYOLOJİ 1" -> "BİYOLOJİ 5"
+  // E.g. "SEÇMELİ KİMYA 1" -> "KİMYA 5"
+  // E.g. "SEÇMELİ COĞRAFYA 1" -> "COĞRAFYA 5"
+  // E.g. "SEÇMELİ TARİH 1" -> "TARİH 5"
+  // E.g. "SEÇMELİ İNGİLİZCE 1" -> "İNGİLİZCE 5"
+  // E.g. "SEÇMELİ TÜRK DİLİ VE EDEBİYATI 1" -> "TÜRK DİLİ VE EDEBİYATI 5"
+  if (normalizedKey.startsWith("SEÇMELİ ")) {
+    const baseName = normalizedKey.replace("SEÇMELİ ", "");
+    
+    // Try to map: e.g. "MATEMATİK 1" -> "MATEMATİK 5", "MATEMATİK 2" -> "MATEMATİK 6"
+    // Let's do dynamic mapping for core subjects
+    const coreMatches = ["MATEMATİK", "TÜRK DİLİ VE EDEBİYATI", "COĞRAFYA", "İNGİLİZCE", "TARİH"];
+    const scienceMatches = ["FİZİK", "KİMYA", "BİYOLOJİ"];
+    
+    // Extract base subject and number
+    const match = baseName.match(/^(.+?)\s+(\d+)$/);
+    if (match) {
+      const subject = match[1].trim();
+      const num = parseInt(match[2]);
+      
+      if (coreMatches.includes(subject)) {
+        // Core electives 1-4 map to grades 11-12 (which are 5-8 in standard)
+        const targetNum = num + 4;
+        const targetKey = `${subject} ${targetNum}`;
+        if (lessonsMuster[targetKey]) {
+          return lessonsMuster[targetKey];
+        }
+      } else if (scienceMatches.includes(subject)) {
+        // Science electives 1-4 map to grades 11-12 (which are 5-8 in standard)
+        const targetNum = num + 4;
+        const targetKey = `${subject} ${targetNum}`;
+        if (lessonsMuster[targetKey]) {
+          return lessonsMuster[targetKey];
+        }
+      }
+    }
+
+    // Generic fallback for any other "SEÇMELİ" course by trying the base name
+    if (lessonsMuster[baseName]) {
+      return lessonsMuster[baseName];
+    }
+  }
+
   // Dynamic fallback modules
   return [
     "1. Ünite: Ders Konuları ve Temel Kavramlar",
@@ -412,7 +712,27 @@ function normalizeTurkishSpelling(text: string): string {
     "YABANCI DIL": "YABANCI DİL",
     "INGILIZCE": "İNGİLİZCE",
     "DIN KULTURU": "DİN KÜLTÜRÜ",
-    "DIN KULTURU VE AHLAK BILGISI": "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"
+    "DIN KULTURU VE AHLAK BILGISI": "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ",
+    "AKAID": "AKAİD",
+    "TEFSIR": "TEFSİR",
+    "SIYER": "SİYER",
+    "HITABET": "HİTABET",
+    "DINLER TARIHI": "DİNLER TARİHİ",
+    "OSMANLI TURKCESI": "OSMANLI TÜRKÇESİ",
+    "OSMANLI TURKÇESİ": "OSMANLI TÜRKÇESİ",
+    "OSMANLI TÜRKÇESI": "OSMANLI TÜRKÇESİ",
+    "PSIKOLOJI": "PSİKOLOJİ",
+    "SOSYOLOJI": "SOSYOLOJİ",
+    "ISLETME": "İŞLETME",
+    "EKONOMI": "EKONOMİ",
+    "GIRISIMCILIK": "GİRİŞİMCİLİK",
+    "SANAT TARIHI": "SANAT TARİHİ",
+    "ASTRONOMI": "ASTRONOMİ",
+    "BILGI KURAMI": "BİLGİ KURAMI",
+    "TURK KULTUR": "TÜRK KÜLTÜR",
+    "CAGDAS TURK": "ÇAĞDAŞ TÜRK",
+    "TEMEL DINI": "TEMEL DİNİ",
+    "PEYGAMBERIMIZIN": "PEYGAMBERİMİZİN"
   };
 
   // Check if any mapping keys are contained inside the text
