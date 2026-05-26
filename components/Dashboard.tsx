@@ -927,26 +927,78 @@ export default function Dashboard({
   const parseCoursesFromText = (text: string): string[] => {
     const parsedCourses: string[] = [];
     
-    // Pattern 1: Specified Regex in specification
-    const pattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|SEÇMELİ\s+[A-ZÇĞİÖŞÜ]+)\s+\d+/gi;
+    // 1. Clean up hyphens between course name and number (e.g. "FIZIK - 1" -> "FIZIK 1")
+    let cleanedText = text
+      .replace(/\s*-\s*(\d+)/g, ' $1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // 2. Perform Turkish spelling and alias normalization so standard regex patterns match perfectly
+    const replacements: [RegExp, string][] = [
+      [/TÜRK\s+DİLİ\s+VE\s+EDEBİYATİ/gi, "TÜRK DİLİ VE EDEBİYATI"],
+      [/TURK\s+DILI\s+VE\s+EDEBIYATI/gi, "TÜRK DİLİ VE EDEBİYATI"],
+      [/TÜRK\s+DİLİ\s+VE\s+EDEBIYATI/gi, "TÜRK DİLİ VE EDEBİYATI"],
+      [/TÜRK\s+DİLİ\s+VE\s+EDEBİYAT/gi, "TÜRK DİLİ VE EDEBİYATI"],
+      [/MATEMATIK/gi, "MATEMATİK"],
+      [/COGRAFYA/gi, "COĞRAFYA"],
+      [/FIZIK/gi, "FİZİK"],
+      [/BIYOLOJI/gi, "BİYOLOJİ"],
+      [/BİYOLOJI/gi, "BİYOLOJİ"],
+      [/KIMYA/gi, "KİMYA"],
+      [/YABANCI\s+DİL/gi, "İNGİLİZCE"],
+      [/YABANCI\s+DIL/gi, "İNGİLİZCE"],
+      [/INGILIZCE/gi, "İNGİLİZCE"],
+      [/DIN\s+KULTURU\s+VE\s+AHLAK\s+BILGISI/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/DIN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/DİN\s+KÜLTÜRÜ/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/DIN\s+KULTURU/gi, "DİN KÜLTÜRÜ VE AHLAK BİLGİSİ"],
+      [/T\.C\.\s+INKILAP/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
+      [/T\.C\.\s+İNKILAP/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
+      [/INKILAP\s+TARIHI/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
+      [/İNKILAP\s+TARİHİ/gi, "T.C. İNKILAP TARİHİ VE ATATÜRKÇÜLÜK"],
+      [/SAGLIK\s+BILGISI/gi, "SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ"],
+      [/SAĞLIK\s+BİLGİSİ/gi, "SAĞLIK BİLGİSİ VE TRAFİK KÜLTÜRÜ"],
+      [/SECMELI/gi, "SEÇMELİ"]
+    ];
+
+    replacements.forEach(([regex, replacement]) => {
+      cleanedText = cleanedText.replace(regex, replacement);
+    });
+
+    // 3. Match using the standardized regex pattern
+    const pattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|SEÇMELİ\s+[A-ZÇĞİÖŞÜ]+)\s+\d+/gi;
     
     let match;
-    while ((match = pattern.exec(text)) !== null) {
+    while ((match = pattern.exec(cleanedText)) !== null) {
       const course = match[0].toUpperCase().replace(/\s+/g, ' ').trim();
       parsedCourses.push(course);
     }
     
-    // Fallback: Smart line-by-line scraper
-    const lines = text.split('\n');
+    // Fallback: Smart line-by-line scraper in case regex misses some structures
+    const lines = text.split('\n'); // Parse from original lines for safety
     lines.forEach(line => {
-      const cleanLine = line.trim().toUpperCase();
-      const isRelevant = cleanLine.includes('ZORUNLU') || cleanLine.includes('MUAF') || cleanLine.includes('SEÇMELİ') || cleanLine.includes('SECMELI');
-      if (isRelevant) {
-        // Look for typical course names within the line
-        const subPattern = /(?:[A-ZÇĞİÖŞÜ\s\.-]+)\s+\d+/g;
-        const matches = cleanLine.match(subPattern);
-        if (matches) {
-          matches.forEach(m => {
+      let cleanLine = line.trim().toUpperCase();
+      // Apply cleanups and replacements on the line
+      cleanLine = cleanLine.replace(/\s*-\s*(\d+)/g, ' $1');
+      replacements.forEach(([regex, replacement]) => {
+        cleanLine = cleanLine.replace(regex, replacement);
+      });
+      const isRelevant = cleanLine.includes('ZORUNLU') || cleanLine.includes('MUAF') || cleanLine.includes('SEÇMELİ') || cleanLine.includes('SECMELI') || cleanLine.includes('ORTAK') || cleanLine.includes('DERS');
+      
+      // Also match the normalized pattern inside the line
+      const subPattern = /(?:TÜRK\s+DİLİ\s+VE\s+EDEBİYATI|MATEMATİK|TARİH|COĞRAFYA|FELSEFE|İNGİLİZCE|FİZİK|KİMYA|BİYOLOJİ|DİN\s+KÜLTÜRÜ\s+VE\s+AHLAK\s+BİLGİSİ|T\.C\.\s+İNKILAP\s+TARİHİ\s+VE\s+ATATÜRKÇÜLÜK|SAĞLIK\s+BİLGİSİ\s+VE\s+TRAFİK\s+KÜLTÜRÜ|SEÇMELİ\s+[A-ZÇĞİÖŞÜ]+)\s+\d+/gi;
+      const matches = cleanLine.match(subPattern);
+      if (matches) {
+        matches.forEach(m => {
+          parsedCourses.push(m.toUpperCase().replace(/\s+/g, ' ').trim());
+        });
+      } else if (isRelevant) {
+        // Look for typical course names followed by number within the line
+        const subPatternFallback = /(?:[A-ZÇĞİÖŞÜ\s\.]+)\s+\d+/g;
+        const fallbackMatches = cleanLine.match(subPatternFallback);
+        if (fallbackMatches) {
+          fallbackMatches.forEach(m => {
             const courseName = m.replace(/\s+/g, ' ').trim();
             if (courseName.length > 5 && courseName.length < 50 && !courseName.includes('KODU') && !courseName.includes('DERSİ') && !courseName.includes('SINAV')) {
               parsedCourses.push(courseName);
@@ -956,7 +1008,16 @@ export default function Dashboard({
       }
     });
 
-    return Array.from(new Set(parsedCourses));
+    // Post-processing to make sure every entry is fully mapped to standard keys
+    const finalParsed = parsedCourses.map(course => {
+      let finalCourse = course;
+      replacements.forEach(([regex, replacement]) => {
+        finalCourse = finalCourse.replace(regex, replacement);
+      });
+      return finalCourse.toUpperCase().replace(/\s+/g, ' ').trim();
+    });
+
+    return Array.from(new Set(finalParsed));
   };
 
   const handleParseCourses = () => {
@@ -1601,26 +1662,36 @@ export default function Dashboard({
       </div>
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-[#0f172a]/95 backdrop-blur-md text-white border-t border-zinc-800">
-        <div className="max-w-4xl mx-auto flex items-center justify-around py-3 px-4">
+      <div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)]">
+        <div className="max-w-4xl mx-auto flex items-center justify-around py-2.5 px-6">
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${
-              activeTab === 'home' ? 'text-[#ffe5ec] scale-105' : 'text-zinc-400 hover:text-zinc-200'
+            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+              activeTab === 'home' 
+                ? 'text-pink-600 scale-105 font-bold' 
+                : 'text-zinc-500 hover:text-pink-500'
             }`}
           >
-            <Bell className="w-5 h-5" />
-            <span className="text-[10px] font-bold">Ana Sayfa</span>
+            <Bell className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'home' ? 'rotate-12 scale-110' : 'group-hover:scale-110'}`} />
+            <span className="text-[10px] tracking-wide select-none">Ana Sayfa</span>
+            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+              activeTab === 'home' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+            }`} />
           </button>
           
           <button
             onClick={() => setActiveTab('lessons')}
-            className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${
-              activeTab === 'lessons' ? 'text-[#ffe5ec] scale-105' : 'text-zinc-400 hover:text-zinc-200'
+            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+              activeTab === 'lessons' 
+                ? 'text-pink-600 scale-105 font-bold' 
+                : 'text-zinc-500 hover:text-pink-500'
             }`}
           >
-            <BookOpen className="w-5 h-5" />
-            <span className="text-[10px] font-bold">Derslerim</span>
+            <BookOpen className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'lessons' ? 'scale-110' : 'group-hover:scale-110'}`} />
+            <span className="text-[10px] tracking-wide select-none">Derslerim</span>
+            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+              activeTab === 'lessons' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+            }`} />
           </button>
         </div>
       </div>
