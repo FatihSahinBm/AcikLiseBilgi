@@ -187,6 +187,10 @@ export async function sendReminderNotification(
   }
 
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aol-duyuru-pwa.vercel.app';
+    const yesUrl = `${baseUrl}/?action=confirm-tag&key=${tagKey}&val=${announcementId}`;
+    const noUrl = `${baseUrl}/`;
+
     const payload = {
       app_id: config.appId,
       // Target users who do NOT have the specified tag equal to the announcementId
@@ -206,13 +210,32 @@ export async function sendReminderNotification(
         en: message,
         tr: message
       },
-      url: targetUrl || 'https://aol-duyuru-pwa.vercel.app',
+      // Additional payload metadata for client-side tag mapping
+      data: {
+        tagKey: tagKey,
+        announcementId: announcementId
+      },
+      url: targetUrl || baseUrl,
       chrome_web_badge: '/icons/icon-72x72.png',
       chrome_web_icon: '/icons/icon-192x192.png',
       firefox_icon: '/icons/icon-192x192.png',
       ios_attachments: {
         id1: '/icons/icon-512x512.png'
-      }
+      },
+      // Action buttons: Evet (with tag confirm URL redirect) and Hayır
+      web_buttons: [
+        {
+          id: 'yes',
+          text: 'Evet',
+          icon: 'https://aol-duyuru-pwa.vercel.app/icons/icon-72x72.png',
+          url: yesUrl
+        },
+        {
+          id: 'no',
+          text: 'Hayır',
+          url: noUrl
+        }
+      ]
     };
 
     console.log(`Sending reminder notification for ${announcementId} with filters:`, JSON.stringify(payload.filters));

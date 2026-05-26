@@ -309,6 +309,87 @@ export default function Dashboard({
     }
   }, []);
 
+  // 1.5. Handle URL action confirmations (e.g. from push notifications action buttons)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const queryParams = new URLSearchParams(window.location.search);
+    const action = queryParams.get('action');
+    const key = queryParams.get('key');
+    const val = queryParams.get('val');
+
+    if (action === 'confirm-tag' && key && val) {
+      console.log(`URL action confirm-tag detected: key=${key}, val=${val}`);
+      
+      const processUrlAction = async () => {
+        const checkAndApply = async () => {
+          const OneSignal = (window as any).OneSignal;
+          if (OneSignal) {
+            try {
+              // 1. Add tag to OneSignal
+              if (OneSignal.User && typeof OneSignal.User.addTag === 'function') {
+                await OneSignal.User.addTag(key, val);
+                console.log(`URL Action: OneSignal Tag Registered: ${key} = ${val}`);
+              } else if (typeof OneSignal.sendTag === 'function') {
+                await OneSignal.sendTag(key, val);
+              }
+
+              // 2. Cache in LocalStorage
+              let storageKey = '';
+              if (key === 'kayit_yenilendi_id') storageKey = `aol_registered_id_${val}`;
+              else if (key === 'ders_secildi_id') storageKey = `aol_course_selected_id_${val}`;
+              else if (key === 'randevu_alindi_id') storageKey = `aol_appointment_taken_id_${val}`;
+
+              if (storageKey) {
+                localStorage.setItem(storageKey, 'true');
+                if (announcement && announcement.id === val) {
+                  setIsConfirmed(true);
+                }
+              }
+
+              // 3. Clear query parameters from URL without reloading page
+              const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+              window.history.replaceState({ path: newUrl }, '', newUrl);
+
+              alert('Harika! Eyleminiz başarıyla onaylandı ve kaydedildi. 🌸');
+              return true;
+            } catch (err) {
+              console.error('Error applying URL action:', err);
+            }
+          }
+          return false;
+        };
+
+        if (!(await checkAndApply())) {
+          let attempts = 0;
+          const interval = setInterval(async () => {
+            attempts++;
+            if (await checkAndApply() || attempts > 10) {
+              clearInterval(interval);
+            }
+          }, 1000);
+        }
+      };
+
+      processUrlAction();
+    }
+  }, [announcement, announcementType]);
+
+  // 1.75. Listen to cross-tab storage changes to synchronize confirm states
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (announcement?.id && announcementType !== 'none') {
+        const keys = getKeysForType(announcementType);
+        if (keys.storageKey) {
+          setIsConfirmed(localStorage.getItem(keys.storageKey) === 'true');
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [announcement, announcementType]);
+
   // 2. Initialize OneSignal client
   useEffect(() => {
     // Check if OneSignal script is loaded on window
@@ -326,8 +407,11 @@ export default function Dashboard({
             }
           });
 
-          // Read initial permission and subscription status
+           // Read initial permission and subscription status
           updatePushStatus();
+
+          // Sync server tags to local cache for self-healing
+          syncOneSignalTagsToLocal();
 
           // Listen to changes
           OneSignal.Notifications.addEventListener('permissionChange', (permissionState: any) => {
@@ -471,6 +555,50 @@ export default function Dashboard({
         }
       } catch (err) {
         console.error('Error removing OneSignal tag:', err);
+      }
+    });
+  };
+
+  const syncOneSignalTagsToLocal = async () => {
+    const OneSignal = (window as any).OneSignal;
+    if (!OneSignal) return;
+
+    OneSignal.push(async () => {
+      try {
+        const tags = OneSignal.User?.getTags ? await OneSignal.User.getTags() : {};
+        if (tags && typeof tags === 'object') {
+          console.log('OneSignal: server tags fetched for synchronization:', tags);
+          const types = ['registration', 'course_selection', 'exam_appointment'];
+          types.forEach(t => {
+            let tagKey = '';
+            let storagePrefix = '';
+            if (t === 'registration') {
+              tagKey = 'kayit_yenilendi_id';
+              storagePrefix = 'aol_registered_id_';
+            } else if (t === 'course_selection') {
+              tagKey = 'ders_secildi_id';
+              storagePrefix = 'aol_course_selected_id_';
+            } else if (t === 'exam_appointment') {
+              tagKey = 'randevu_alindi_id';
+              storagePrefix = 'aol_appointment_taken_id_';
+            }
+
+            const tagVal = tags[tagKey];
+            if (tagVal) {
+              localStorage.setItem(`${storagePrefix}${tagVal}`, 'true');
+            }
+          });
+
+          // Sync current announcement confirm state
+          if (announcement?.id && announcementType !== 'none') {
+            const keys = getKeysForType(announcementType);
+            if (keys.storageKey) {
+              setIsConfirmed(localStorage.getItem(keys.storageKey) === 'true');
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error('OneSignal: tag synchronization failed:', syncError);
       }
     });
   };
@@ -710,61 +838,10 @@ export default function Dashboard({
       {/* Dynamic ambient background glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-400/20 blur-[80px] sm:blur-[120px] pointer-events-none -z-10" />
 
-      {/* Header and status area (Collapsible) */}
-      <div className="bg-white/70 border border-pink-200/50 rounded-3xl backdrop-blur-md shadow-xl shadow-pink-100/40 overflow-hidden transition-all duration-300">
-        <button
-          onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
-          className="w-full flex items-center justify-between p-6 hover:bg-pink-50/20 transition-colors text-left cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <HelloKittyBow />
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-              </span>
-              <h1 className="text-xl font-bold tracking-tight text-pink-600">AOL Duyuru Takip</h1>
-            </div>
-          </div>
-          {isHeaderExpanded ? (
-            <ChevronUp className="w-5 h-5 text-pink-400 transition-transform" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-pink-400 transition-transform" />
-          )}
-        </button>
-
-        {isHeaderExpanded && (
-          <div className="px-6 pb-6 pt-2 space-y-4 animate-fade-in border-t border-pink-100/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <span className="text-xs bg-pink-100 text-pink-700 font-medium px-2.5 py-0.5 rounded-full border border-pink-200/50 w-fit inline-block">
-                PWA v1.0 🎀
-              </span>
-              <p className="text-sm text-zinc-650">MEB Açık Öğretim Lisesi önemli duyuruları anlık cebinizde.</p>
-            </div>
-
-            {/* Sync / refresh details */}
-            <div className="flex flex-col items-start sm:items-end gap-1.5 text-xs text-zinc-550 shrink-0">
-              <div className="flex items-center gap-2">
-                <span>Kontrol: <strong className="text-pink-650">{lastChecked}</strong></span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    triggerManualCheck();
-                  }}
-                  disabled={isRefreshing}
-                  className="p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100/80 active:scale-95 border border-pink-150 transition-all text-pink-600 disabled:opacity-50 cursor-pointer"
-                  title="Şimdi Kontrol Et"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
-                </button>
-              </div>
-              <div className="flex items-center gap-1.5 bg-pink-50/80 text-pink-700 px-2.5 py-0.5 rounded-lg border border-pink-100/60 text-[11px]">
-                <Cpu className="w-3 h-3 text-pink-500" />
-                <span>Store: <strong className="text-pink-650">{redisType}</strong></span>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Page Title Header (Without card container) */}
+      <div className="flex items-center gap-3 select-none">
+        <HelloKittyBow />
+        <h1 className="text-2xl font-black bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">AOL Duyuru Takip</h1>
       </div>
 
       {/* PWA State Instructions for iOS Safari outside PWA */}
@@ -932,90 +1009,6 @@ export default function Dashboard({
         {/* Right Column: Latest Announcement Details */}
         <div className="md:col-span-2 space-y-6">
           
-          {/* Action Confirm Banner (Registration, Course Selection, or Exam Appointment) */}
-          {(() => {
-            if (announcementType === 'none') return null;
-
-            let cardTitle = '';
-            let cardQuestion = '';
-            let buttonText = '';
-            let successText = '';
-            let revertText = '';
-
-            switch (announcementType) {
-              case 'registration':
-                cardTitle = 'Kayıt Yenileme Durum Takibi ⏳';
-                cardQuestion = 'Bu duyuru kayıt yenileme işlemleri ile ilgilidir. Sınavlara katılabilmek için kaydınızı yenilediniz mi?';
-                buttonText = 'Evet, Kayıt Yeniledim 💖';
-                successText = '🌸 Tebrikler! Kayıt yenilediğinizi onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
-                revertText = 'Geri Al (Kayıt Yenilemedim)';
-                break;
-              case 'course_selection':
-                cardTitle = 'Ders Seçimi Durum Takibi 📚';
-                cardQuestion = 'Bu duyuru ders seçme işlemleri ile ilgilidir. Sınavlara gireceğiniz dersleri seçtiniz mi?';
-                buttonText = 'Evet, Ders Seçimini Yaptım 💖';
-                successText = '🌸 Harika! Ders seçiminizi tamamladığınızı onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
-                revertText = 'Geri Al (Ders Seçmedim)';
-                break;
-              case 'exam_appointment':
-                cardTitle = 'e-Sınav Randevu Durum Takibi 🗓️';
-                cardQuestion = 'Bu duyuru e-Sınav randevuları ile ilgilidir. Sınav merkezinizi ve saatinizi belirleyip randevunuzu aldınız mı?';
-                buttonText = 'Evet, Randevu Aldım 💖';
-                successText = '🌸 Süper! e-Sınav randevunuzu aldığınızı onayladınız. Artık bu duyuru için hatırlatma almayacaksınız.';
-                revertText = 'Geri Al (Randevu Almadım)';
-                break;
-            }
-
-            return (
-              <div className="relative overflow-hidden bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200/70 p-5 rounded-3xl shadow-lg shadow-pink-150/40 text-zinc-700 animate-fade-in space-y-3">
-                {/* Decorative background glow */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-pink-100 rounded-bl-full -z-10 opacity-60 pointer-events-none" />
-                <div className="flex gap-4 items-start">
-                  <div className="p-3 bg-pink-100 text-pink-600 rounded-2xl border border-pink-200/30 shrink-0">
-                    <CheckCircle2 className={`w-6 h-6 transition-colors duration-300 ${isConfirmed ? 'text-pink-600' : 'text-zinc-400'}`} />
-                  </div>
-                  <div className="space-y-2.5 w-full">
-                    <div>
-                      <h4 className="text-sm font-bold text-pink-600 flex items-center gap-1.5">
-                        <span>{cardTitle}</span>
-                      </h4>
-                      <p className="text-xs text-zinc-650 mt-1 leading-relaxed">
-                        {cardQuestion}
-                      </p>
-                    </div>
-
-                    {isConfirmed ? (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 p-3 rounded-2xl border border-pink-200/40">
-                        <span className="text-xs text-pink-600 font-semibold flex items-center gap-1.5">
-                          <span>{successText}</span>
-                        </span>
-                        <button
-                          onClick={markAsUnconfirmed}
-                          className="text-[11px] font-semibold text-zinc-500 hover:text-pink-650 underline shrink-0 cursor-pointer text-left transition-colors"
-                        >
-                          {revertText}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        <button
-                          onClick={markAsConfirmed}
-                          className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-[0.98] transition-all text-white font-semibold text-xs py-2 px-5 rounded-xl shadow-md shadow-pink-500/15 cursor-pointer"
-                        >
-                          {buttonText}
-                        </button>
-                        <span className="text-[11px] text-zinc-555 italic">
-                          * 1 hafta, 3 gün ve 1 gün kala bildirim uyarısı almak için hayır seçeneğine tıklamanıza gerek yoktur.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-
           <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 space-y-6 backdrop-blur-md shadow-xl shadow-pink-100/40">
             
             {/* Header info */}
@@ -1026,7 +1019,21 @@ export default function Dashboard({
                   <span>🎀</span>
                 </h2>
               </div>
-              <div className="flex flex-wrap gap-2 text-[11px]">
+              <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                <span className="bg-pink-50/70 text-zinc-550 border border-pink-200/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                  Kontrol: <strong className="text-pink-650">{lastChecked}</strong>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerManualCheck();
+                    }}
+                    disabled={isRefreshing}
+                    className="p-1 rounded hover:bg-pink-100/50 text-pink-600 disabled:opacity-50 cursor-pointer"
+                    title="Şimdi Kontrol Et"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
+                  </button>
+                </span>
                 <span className="bg-pink-50 text-pink-600 border border-pink-200/30 px-2.5 py-1 rounded-lg">
                   Yayın: {announcement.publishDate}
                 </span>
@@ -1075,6 +1082,47 @@ export default function Dashboard({
                     </a>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Inline status confirmation controls for reminders */}
+            {announcementType !== 'none' && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-pink-50/20 border border-pink-100 rounded-2xl animate-fade-in">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-pink-600 flex items-center gap-1.5 select-none">
+                    <span>
+                      {announcementType === 'registration'
+                        ? 'Kayıt Yenileme Durumu ⏳'
+                        : announcementType === 'course_selection'
+                        ? 'Ders Seçimi Durumu 📚'
+                        : 'e-Sınav Randevu Durumu 🗓️'}
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-zinc-550 leading-relaxed">
+                    {announcementType === 'registration'
+                      ? 'Bu duyuru kayıt yenileme dönemini belirtiyor. İşleminizi tamamladınız mı?'
+                      : announcementType === 'course_selection'
+                      ? 'Bu duyuru ders seçme işlemlerini belirtiyor. Ders seçiminizi yaptınız mı?'
+                      : 'Bu duyuru e-Sınav randevularını belirtiyor. Randevunuzu aldınız mı?'}
+                  </p>
+                </div>
+                <button
+                  onClick={isConfirmed ? markAsUnconfirmed : markAsConfirmed}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                    isConfirmed
+                      ? 'bg-pink-100/75 text-pink-700 border border-pink-200'
+                      : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/15'
+                  }`}
+                >
+                  {isConfirmed ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-pink-600" />
+                      <span>Evet, Tamamladım</span>
+                    </>
+                  ) : (
+                    <span>İşlemi Tamamladım</span>
+                  )}
+                </button>
               </div>
             )}
 
