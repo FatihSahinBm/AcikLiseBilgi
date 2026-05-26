@@ -37,13 +37,71 @@ interface Announcement {
   publishDate: string;
   updateDate: string;
   files: FileAttachment[];
+  deadline?: string;
 }
 
 interface DashboardProps {
   initialAnnouncement: Announcement;
+  initialHistory?: Announcement[];
   initialLastChecked: string;
   initialRedisType: string;
 }
+
+function AnnouncementCountdown({ deadlineStr }: { deadlineStr?: string }) {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (!deadlineStr) return;
+
+    const calculateText = () => {
+      const deadline = new Date(deadlineStr);
+      const now = new Date();
+      const diff = deadline.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft('Süre Doldu');
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+      if (days > 0) {
+        setTimeLeft(`${days} gün ${hours} saat`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours} saat ${minutes} dak`);
+      } else {
+        setTimeLeft(`${minutes} dak kaldı!`);
+      }
+    };
+
+    calculateText();
+    const interval = setInterval(calculateText, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, [deadlineStr]);
+
+  if (!deadlineStr || !timeLeft) return null;
+
+  const isExpired = timeLeft === 'Süre Doldu';
+  const deadlineDate = new Date(deadlineStr).toLocaleDateString('tr-TR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all shrink-0 select-none ${
+      isExpired
+        ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
+        : 'bg-rose-50 text-rose-600 border-rose-200/50 animate-pulse'
+    }`}>
+      <span className="shrink-0">⏳</span>
+      <span>Son Gün: {deadlineDate} ({timeLeft})</span>
+    </div>
+  );
+}
+
 
 const HelloKittyBow = () => (
   <svg viewBox="0 0 100 80" className="w-8 h-8 drop-shadow-[0_2px_6px_rgba(244,63,94,0.3)] select-none shrink-0 animate-bounce" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animationDuration: '3s' }}>
@@ -217,14 +275,21 @@ function CountdownTimer() {
 
 export default function Dashboard({
   initialAnnouncement,
+  initialHistory,
   initialLastChecked,
   initialRedisType
 }: DashboardProps) {
   // Scraped Data State
   const [announcement, setAnnouncement] = useState<Announcement>(initialAnnouncement);
+  const [history, setHistory] = useState<Announcement[]>(initialHistory || []);
+  const [activeAnnouncement, setActiveAnnouncement] = useState<Announcement>(initialAnnouncement);
   const [lastChecked, setLastChecked] = useState<string>(initialLastChecked);
   const [redisType, setRedisType] = useState<string>(initialRedisType);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    setActiveAnnouncement(announcement);
+  }, [announcement]);
 
   // Platform & PWA states
   const [isIOS, setIsIOS] = useState(false);
@@ -253,9 +318,9 @@ export default function Dashboard({
 
   // Detect announcement type and corresponding key states
   useEffect(() => {
-    if (!announcement) return;
-    const title = announcement.title.toLocaleLowerCase('tr-TR');
-    const desc = announcement.description.toLocaleLowerCase('tr-TR');
+    if (!activeAnnouncement) return;
+    const title = activeAnnouncement.title.toLocaleLowerCase('tr-TR');
+    const desc = activeAnnouncement.description.toLocaleLowerCase('tr-TR');
 
     let type: 'registration' | 'course_selection' | 'exam_appointment' | 'none' = 'none';
 
@@ -276,11 +341,11 @@ export default function Dashboard({
 
     setAnnouncementType(type);
 
-    if (typeof window !== 'undefined' && announcement?.id && type !== 'none') {
+    if (typeof window !== 'undefined' && activeAnnouncement?.id && type !== 'none') {
       let storageKey = '';
-      if (type === 'registration') storageKey = `aol_registered_id_${announcement.id}`;
-      else if (type === 'course_selection') storageKey = `aol_course_selected_id_${announcement.id}`;
-      else if (type === 'exam_appointment') storageKey = `aol_appointment_taken_id_${announcement.id}`;
+      if (type === 'registration') storageKey = `aol_registered_id_${activeAnnouncement.id}`;
+      else if (type === 'course_selection') storageKey = `aol_course_selected_id_${activeAnnouncement.id}`;
+      else if (type === 'exam_appointment') storageKey = `aol_appointment_taken_id_${activeAnnouncement.id}`;
 
       if (storageKey) {
         setIsConfirmed(localStorage.getItem(storageKey) === 'true');
@@ -290,7 +355,7 @@ export default function Dashboard({
     } else {
       setIsConfirmed(null);
     }
-  }, [announcement]);
+  }, [activeAnnouncement]);
 
 
   // 1. Detect platform and PWA standalone status
@@ -343,7 +408,7 @@ export default function Dashboard({
 
               if (storageKey) {
                 localStorage.setItem(storageKey, 'true');
-                if (announcement && announcement.id === val) {
+                if (activeAnnouncement && activeAnnouncement.id === val) {
                   setIsConfirmed(true);
                 }
               }
@@ -374,12 +439,12 @@ export default function Dashboard({
 
       processUrlAction();
     }
-  }, [announcement, announcementType]);
+  }, [activeAnnouncement, announcementType]);
 
   // 1.75. Listen to cross-tab storage changes to synchronize confirm states
   useEffect(() => {
     const handleStorageChange = () => {
-      if (announcement?.id && announcementType !== 'none') {
+      if (activeAnnouncement?.id && announcementType !== 'none') {
         const keys = getKeysForType(announcementType);
         if (keys.storageKey) {
           setIsConfirmed(localStorage.getItem(keys.storageKey) === 'true');
@@ -389,7 +454,7 @@ export default function Dashboard({
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [announcement, announcementType]);
+  }, [activeAnnouncement, announcementType]);
 
   // 2. Initialize OneSignal client
   useEffect(() => {
@@ -586,7 +651,7 @@ export default function Dashboard({
           });
 
           // Sync current announcement confirm state
-          if (announcement?.id && announcementType !== 'none') {
+          if (activeAnnouncement?.id && announcementType !== 'none') {
             const keys = getKeysForType(announcementType);
             if (keys.storageKey) {
               setIsConfirmed(localStorage.getItem(keys.storageKey) === 'true');
@@ -602,32 +667,32 @@ export default function Dashboard({
   const getKeysForType = (type: 'registration' | 'course_selection' | 'exam_appointment' | 'none') => {
     switch (type) {
       case 'registration':
-        return { tagKey: 'kayit_yenilendi_id', storageKey: `aol_registered_id_${announcement.id}` };
+        return { tagKey: 'kayit_yenilendi_id', storageKey: `aol_registered_id_${activeAnnouncement.id}` };
       case 'course_selection':
-        return { tagKey: 'ders_secildi_id', storageKey: `aol_course_selected_id_${announcement.id}` };
+        return { tagKey: 'ders_secildi_id', storageKey: `aol_course_selected_id_${activeAnnouncement.id}` };
       case 'exam_appointment':
-        return { tagKey: 'randevu_alindi_id', storageKey: `aol_appointment_taken_id_${announcement.id}` };
+        return { tagKey: 'randevu_alindi_id', storageKey: `aol_appointment_taken_id_${activeAnnouncement.id}` };
       default:
         return { tagKey: '', storageKey: '' };
     }
   };
 
   const markAsConfirmed = async () => {
-    if (!announcement?.id || announcementType === 'none') return;
+    if (!activeAnnouncement?.id || announcementType === 'none') return;
     const keys = getKeysForType(announcementType);
     if (!keys.storageKey || !keys.tagKey) return;
     
     try {
       localStorage.setItem(keys.storageKey, 'true');
       setIsConfirmed(true);
-      await addOneSignalTag(keys.tagKey, announcement.id);
+      await addOneSignalTag(keys.tagKey, activeAnnouncement.id);
     } catch (err) {
       console.error('Failed to mark as confirmed:', err);
     }
   };
 
   const markAsUnconfirmed = async () => {
-    if (!announcement?.id || announcementType === 'none') return;
+    if (!activeAnnouncement?.id || announcementType === 'none') return;
     const keys = getKeysForType(announcementType);
     if (!keys.storageKey || !keys.tagKey) return;
     
@@ -1031,13 +1096,13 @@ export default function Dashboard({
             {/* Header info */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-pink-100">
               <div className="space-y-1">
-                <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1">
-                  <span>MEB SON DUYURU</span>
+                <h2 className="text-xs font-semibold tracking-wider text-pink-500 uppercase flex items-center gap-1 select-none">
+                  <span>MEB DUYURU DETAYI</span>
                   <span>🎀</span>
                 </h2>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="bg-pink-50/70 text-zinc-550 border border-pink-200/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                <span className="bg-pink-50/70 text-zinc-550 border border-pink-200/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5 select-none">
                   Kontrol: <strong className="text-pink-650">{lastChecked}</strong>
                   <button
                     onClick={(e) => {
@@ -1051,35 +1116,40 @@ export default function Dashboard({
                     <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-pink-500' : ''}`} />
                   </button>
                 </span>
-                <span className="bg-pink-50 text-pink-600 border border-pink-200/30 px-2.5 py-1 rounded-lg">
-                  Yayın: {announcement.publishDate}
+                <span className="bg-pink-50 text-pink-600 border border-pink-200/30 px-2.5 py-1 rounded-lg select-none">
+                  Yayın: {activeAnnouncement.publishDate}
                 </span>
-                <span className="bg-rose-50 text-rose-600 border border-rose-200/30 px-2.5 py-1 rounded-lg">
-                  Güncelleme: {announcement.updateDate}
+                <span className="bg-rose-50 text-rose-600 border border-rose-200/30 px-2.5 py-1 rounded-lg select-none">
+                  Güncelleme: {activeAnnouncement.updateDate}
                 </span>
               </div>
             </div>
 
             {/* Title card with modern layout */}
             <div className="space-y-3">
-              <h3 className="text-lg sm:text-xl font-bold text-zinc-800 leading-snug">
-                {announcement.title}
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <h3 className="text-lg sm:text-xl font-bold text-zinc-800 leading-snug">
+                  {activeAnnouncement.title}
+                </h3>
+                {activeAnnouncement.deadline && (
+                  <AnnouncementCountdown deadlineStr={activeAnnouncement.deadline} />
+                )}
+              </div>
               <div 
                 className="text-sm text-zinc-650 leading-relaxed whitespace-pre-wrap animate-fade-in"
-                dangerouslySetInnerHTML={{ __html: announcement.description }}
+                dangerouslySetInnerHTML={{ __html: activeAnnouncement.description }}
               />
             </div>
 
             {/* Attached Files & Guides Section */}
-            {announcement.files && announcement.files.length > 0 && (
+            {activeAnnouncement.files && activeAnnouncement.files.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-xs font-semibold text-pink-500 tracking-wider uppercase flex items-center gap-1.5">
+                <h4 className="text-xs font-semibold text-pink-500 tracking-wider uppercase flex items-center gap-1.5 select-none">
                   <FileText className="w-3.5 h-3.5 text-pink-400" />
                   Eğitim ve Kayıt Kılavuzları
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {announcement.files.map((file, i) => (
+                  {activeAnnouncement.files.map((file, i) => (
                     <a
                       key={i}
                       href={file.url}
@@ -1115,7 +1185,7 @@ export default function Dashboard({
                         : 'e-Sınav Randevu Durumu 🗓️'}
                     </span>
                   </h4>
-                  <p className="text-[11px] text-zinc-550 leading-relaxed">
+                  <p className="text-[11px] text-zinc-555 leading-relaxed">
                     {announcementType === 'registration'
                       ? 'Bu duyuru kayıt yenileme dönemini belirtiyor. İşleminizi tamamladınız mı?'
                       : announcementType === 'course_selection'
@@ -1125,7 +1195,7 @@ export default function Dashboard({
                 </div>
                 <button
                   onClick={isConfirmed ? markAsUnconfirmed : markAsConfirmed}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 select-none ${
                     isConfirmed
                       ? 'bg-pink-100/75 text-pink-700 border border-pink-200'
                       : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/15'
@@ -1145,10 +1215,10 @@ export default function Dashboard({
 
             {/* Official Webpage action button */}
             <a
-              href={announcement.link}
+              href={activeAnnouncement.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-pink-50/50 text-zinc-700 hover:text-pink-600 border border-pink-200/50 py-3 px-5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.98] w-full shadow-sm"
+              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-pink-50/50 text-zinc-700 hover:text-pink-650 border border-pink-200/50 py-3 px-5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.98] w-full shadow-sm"
             >
               Resmi MEB Duyuru Sayfasına Git
               <ExternalLink className="w-4 h-4" />
@@ -1158,6 +1228,67 @@ export default function Dashboard({
         </div>
 
       </div>
+
+      {/* Inbox / Notification History Section */}
+      {history && history.length > 0 && (
+        <div className="bg-white/70 border border-pink-200/50 rounded-3xl p-6 backdrop-blur-md shadow-xl shadow-pink-100/40 space-y-4">
+          <div className="flex items-center gap-2 border-b border-pink-100 pb-3 select-none">
+            <BellRing className="w-5 h-5 text-pink-500 animate-pulse" />
+            <div>
+              <h3 className="text-sm font-bold text-zinc-800">Bildirim Geçmişi (Gelen Kutusu) 🎀</h3>
+              <p className="text-[10px] text-zinc-500">Sisteme daha önce gönderilen son 5 duyuru ve bildirim akışı</p>
+            </div>
+          </div>
+
+          <div className="divide-y divide-pink-100/40 space-y-1">
+            {history.map((item) => {
+              const isActive = activeAnnouncement?.id === item.id;
+              return (
+                <div 
+                  key={item.id}
+                  onClick={() => setActiveAnnouncement(item)}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl transition-all cursor-pointer group text-left ${
+                    isActive
+                      ? 'bg-pink-50/60 border border-pink-200/40 shadow-sm'
+                      : 'hover:bg-pink-50/20 border border-transparent'
+                  }`}
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] bg-pink-100 text-pink-600 px-2 py-0.5 rounded-md font-semibold shrink-0 select-none">
+                        {item.publishDate}
+                      </span>
+                      {item.deadline && (
+                        <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md font-semibold shrink-0 flex items-center gap-0.5 select-none">
+                          <span>⏳ Son Tarihli</span>
+                        </span>
+                      )}
+                    </div>
+                    <h4 className={`text-xs font-bold truncate pr-4 ${
+                      isActive ? 'text-pink-700 font-extrabold' : 'text-zinc-700 group-hover:text-pink-600 transition-colors'
+                    }`}>
+                      {item.title}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveAnnouncement(item);
+                    }}
+                    className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all shrink-0 cursor-pointer ${
+                      isActive
+                        ? 'bg-pink-200/50 text-pink-700'
+                        : 'bg-white hover:bg-pink-100/50 text-zinc-650 hover:text-pink-600 border border-pink-200/30'
+                    }`}
+                  >
+                    {isActive ? 'Gösteriliyor 🎀' : 'Detayları Gör'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Informative Footer */}
       <footer className="text-center text-xs text-pink-650/70 pt-6 space-y-2 border-t border-pink-200/50">

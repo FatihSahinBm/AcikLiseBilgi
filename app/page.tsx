@@ -11,11 +11,13 @@ export default async function Home() {
 
   let announcement = null;
   let lastChecked = null;
+  let history: any[] = [];
 
   try {
     // 1. Directly fetch state from Redis inside Server Component
     announcement = await redis.get<any>(lastAnnouncementKey);
     lastChecked = await redis.get<string>(lastCheckedKey);
+    history = await redis.get<any[]>('aol_announcement_history') || [];
   } catch (redisError) {
     console.error('Server side Redis fetch failed:', redisError);
   }
@@ -52,7 +54,8 @@ export default async function Home() {
             title: 'Kayıt Yenileme Kılavuzu',
             url: 'https://aol.meb.gov.tr/meb_iys_dosyalar/2026_05/6a05cf5cac03c371107068_A%C3%A7%C4%B1k_%C3%96%C4%9Fretim_Lisesi_2025-2026_E%C4%9Fitim_%C3%96%C4%9Fretim_Y%C4%B1l%C4%B1_3.D%C3%B6nem_Kay%C4%B1t_Yenileme_K%C4%B1lavuzu.pdf'
           }
-        ]
+        ],
+        deadline: new Date('2026-06-08T23:59:59+03:00').toISOString()
       };
     }
   }
@@ -75,6 +78,51 @@ export default async function Home() {
     }
   }
 
+  const mockHistory = [
+    {
+      id: 'mock-hist-1',
+      title: '2025-2026 EĞİTİM ÖĞRETİM YILI 2. DÖNEM SINAV SONUÇLARI AÇIKLANDI 🌸',
+      description: 'Açık Öğretim Lisesi 2. dönem sınav sonuçları öğrenci bilgi sistemine yüklenmiştir. Öğrencilerimiz T.C. Kimlik No ve şifreleri ile sisteme giriş yaparak sonuçlarını öğrenebilirler.',
+      link: 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481/tr',
+      publishDate: '18.03.2026',
+      updateDate: '18.03.2026',
+      files: []
+    },
+    {
+      id: 'mock-hist-2',
+      title: '2025-2026 EĞİTİM ÖĞRETİM YILI 2. DÖNEM SINAV GİRİŞ BELGELERİ YAYIMLANDI 📝',
+      description: 'Açık Öğretim Lisesi 2. dönem sınav giriş belgeleri yayımlanmıştır. Sınava girecek öğrencilerin belgelerini sistemden yazdırıp sınav günü yanlarında bulundurmaları zorunludur.',
+      link: 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481/tr',
+      publishDate: '28.02.2026',
+      updateDate: '28.02.2026',
+      files: []
+    },
+    {
+      id: 'mock-hist-3',
+      title: 'AÇIK ÖĞRETİM LİSESİ E-SINAV RANDEVU İŞLEMLERİ BAŞLAMIŞTIR 🗓️',
+      description: 'Açık Öğretim Lisesi öğrencileri için e-Sınav randevu modülü açılmıştır. Sınav randevunuzu almak için öğrenci giriş ekranından işlemlerinizi tamamlayabilirsiniz. Randevu almayan öğrenciler sınava katılamayacaktır.',
+      link: 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481/tr',
+      publishDate: '10.02.2026',
+      updateDate: '10.02.2026',
+      files: [],
+      deadline: new Date('2026-02-28T23:59:59+03:00').toISOString()
+    }
+  ];
+
+  // Seed history if empty or has 1 item
+  if (history.length <= 1) {
+    const activeItem = announcement ? [announcement] : [];
+    const filteredMocks = mockHistory.filter(
+      mock => !activeItem.some(active => active.title === mock.title)
+    );
+    history = [...activeItem, ...filteredMocks];
+    try {
+      await redis.set('aol_announcement_history', history);
+    } catch (historySeedError) {
+      console.error('Failed to save seeded history to Redis:', historySeedError);
+    }
+  }
+
   const isMock = !process.env.UPSTASH_REDIS_REST_URL;
   const redisType = isMock ? 'In-Memory (Geliştirici Modu)' : 'Upstash Production Redis';
 
@@ -87,6 +135,7 @@ export default async function Home() {
       {/* Render the core dashboard */}
       <Dashboard
         initialAnnouncement={announcement}
+        initialHistory={history}
         initialLastChecked={lastChecked}
         initialRedisType={redisType}
       />

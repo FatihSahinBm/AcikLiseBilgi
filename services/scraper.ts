@@ -9,6 +9,7 @@ export interface Announcement {
   publishDate: string;
   updateDate: string;
   files: { title: string; url: string }[];
+  deadline?: string;
 }
 
 interface RssAnnouncement {
@@ -325,6 +326,9 @@ export async function scrapeAnnouncement(
     const signature = `${title}-${targetUrl}-${updateDate || ''}`;
     const id = Buffer.from(signature).toString('base64').substring(0, 16);
 
+    const deadlineDate = extractDeadline(title, description);
+    const deadline = deadlineDate ? deadlineDate.toISOString() : undefined;
+
     return {
       id,
       title,
@@ -332,7 +336,8 @@ export async function scrapeAnnouncement(
       link: targetUrl,
       publishDate: displayPublishDate,
       updateDate: displayUpdateDate,
-      files
+      files,
+      deadline
     };
   } catch (error: any) {
     console.error('Error while scraping MEB AOL:', error.message);

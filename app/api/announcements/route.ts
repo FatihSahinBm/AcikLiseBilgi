@@ -32,12 +32,21 @@ export async function GET(request: NextRequest) {
       lastChecked = currentTime;
     }
 
+    // Fetch history
+    const historyKey = 'aol_announcement_history';
+    let history = await redis.get<any[]>(historyKey) || [];
+    if (history.length === 0 && announcement) {
+      history = [announcement];
+      await redis.set(historyKey, history);
+    }
+
     // Determine what type of Redis is active
     const isMock = !process.env.UPSTASH_REDIS_REST_URL;
 
     return NextResponse.json({
       success: true,
       announcement,
+      history,
       lastChecked: lastChecked || 'Henüz kontrol edilmedi',
       redisType: isMock ? 'In-Memory (Geliştirici Modu)' : 'Upstash Production Redis'
     });

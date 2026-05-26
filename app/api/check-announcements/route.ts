@@ -6,6 +6,24 @@ import { sendBroadcastNotification, sendReminderNotification } from '@/services/
 // Set this to allow Next.js to run as dynamic route (critical for APIs reading from external websites/Redis)
 export const dynamic = 'force-dynamic';
 
+async function addAnnouncementToHistory(announcement: any) {
+  try {
+    const historyKey = 'aol_announcement_history';
+    let history = await redis.get<any[]>(historyKey) || [];
+    
+    // Check if this announcement already exists in history
+    const exists = history.some((item: any) => item.id === announcement.id || item.title === announcement.title);
+    if (!exists) {
+      history = [announcement, ...history];
+      history = history.slice(0, 5);
+      await redis.set(historyKey, history);
+      console.log('Added announcement to history in Redis. Current count:', history.length);
+    }
+  } catch (err) {
+    console.error('Failed to add announcement to history in Redis:', err);
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,6 +45,13 @@ export async function GET(request: NextRequest) {
 
     // 2. Scrape the current MEB page
     const currentAnnouncement = await scrapeAnnouncement();
+    
+    // Ensure history is initialized
+    const historyKey = 'aol_announcement_history';
+    const existingHistory = await redis.get<any[]>(historyKey);
+    if (!existingHistory || existingHistory.length === 0) {
+      await redis.set(historyKey, [currentAnnouncement]);
+    }
     
     // 3. Fetch the last stored announcement from Redis
     const lastAnnouncementKey = 'aol_last_announcement';
@@ -61,6 +86,8 @@ export async function GET(request: NextRequest) {
       await redis.set(lastAnnouncementKey, currentAnnouncement);
       
       if (isActuallyNew) {
+        await addAnnouncementToHistory(currentAnnouncement);
+
         // Trigger Web Push Notification via OneSignal ONLY if it is a genuinely new announcement!
         const notificationTitle = `Açık Lise: ${currentAnnouncement.title.substring(0, 50)}...`;
         const notificationBody = `Yeni Önemli Duyuru Yayınlandı! Tarih: ${currentAnnouncement.updateDate}. Okumak için tıklayın.`;
@@ -130,17 +157,23 @@ export async function GET(request: NextRequest) {
           switch (announcementType) {
             case 'registration':
               tagKey = 'kayit_yenilendi_id';
-              reminderTitle = `Kayıt yeniledin mi? 🎀`;
+              reminderTitle = diffDays <= 1 
+                ? 'Kayıt yenileme için SON GÜN! ⚠️' 
+                : `Kayıt yenileme için son ${diffDays} gün! 🎀`;
               reminderBody = `Kayıt yenileme döneminin bitmesine ${dayText} kaldı! Sınavlara katılabilmek için kaydınızı yenilediniz mi?`;
               break;
             case 'course_selection':
               tagKey = 'ders_secildi_id';
-              reminderTitle = `Ders seçimini yaptın mı? 📚`;
+              reminderTitle = diffDays <= 1
+                ? 'Ders seçimi için SON GÜN! ⚠️'
+                : `Ders seçimi için son ${diffDays} gün! 📚`;
               reminderBody = `Ders seçimi döneminin bitmesine ${dayText} kaldı! Sınavlara gireceğiniz dersleri seçtiniz mi?`;
               break;
             case 'exam_appointment':
               tagKey = 'randevu_alindi_id';
-              reminderTitle = `e-Sınav randevunu aldın mı? 🗓️`;
+              reminderTitle = diffDays <= 1
+                ? 'e-Sınav randevusu için SON GÜN! ⚠️'
+                : `e-Sınav randevusu için son ${diffDays} gün! 🗓️`;
               reminderBody = `e-Sınav randevusu alma süresinin bitmesine ${dayText} kaldı! Sınav merkezinizi ve saatinizi belirlediniz mi?`;
               break;
           }
