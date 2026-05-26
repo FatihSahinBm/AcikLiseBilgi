@@ -20,12 +20,15 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    // Set statusBarStyle to default so system status bar is separated and doesn't overlap the UI content
+    statusBarStyle: 'default',
     title: 'AOL Duyuru'
   },
   icons: {
+    // Normal browsers can still pull the SVG icon
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    apple: '/icons/icon-192x192.png'
+    // Apple expects a solid high-resolution PNG icon, standard size is 180x180
+    apple: '/icons/icon-180x180.png'
   },
   other: {
     'mobile-web-app-capable': 'yes'
@@ -39,10 +42,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="h-full scroll-smooth">
-      <head>
-        {/* iOS startup splash screen image */}
-        <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
-      </head>
       <body className={`${inter.className} min-h-full bg-[#ffe5ec] text-zinc-800 antialiased flex flex-col`}>
         {children}
         
