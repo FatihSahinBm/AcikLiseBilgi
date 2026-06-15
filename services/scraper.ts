@@ -51,9 +51,9 @@ async function getLatestAnnouncementFromRss(): Promise<RssAnnouncement | null> {
  * Used as a fallback when RSS feed is down.
  */
 async function getLatestAnnouncementUrlFromListPage(): Promise<string> {
-  const listUrl = 'https://aol.meb.gov.tr/www/onemli-duyuru/kategori/1';
+  const homepageUrl = 'https://aol.meb.gov.tr/';
   try {
-    const response = await axios.get(listUrl, {
+    const response = await axios.get(homepageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Cache-Control': 'no-cache',
@@ -64,35 +64,28 @@ async function getLatestAnnouncementUrlFromListPage(): Promise<string> {
     const $ = cheerio.load(response.data);
     
     let foundLink = '';
-    // Try content/list containers first to avoid header/footer links
-    const selectors = ['.content', '.main', '#content', '.list-group', '.kategori-listesi', 'body'];
-    for (const selector of selectors) {
-      const container = $(selector);
-      if (container.length > 0) {
-        container.find('a').each((i, el) => {
-          const href = $(el).attr('href');
-          if (href && href.includes('/icerik/')) {
-            foundLink = href.trim();
-            return false;
-          }
-        });
-        if (foundLink) break;
+    // Look for links containing '/onemli-duyuru/icerik/' on the homepage
+    $('a').each((i, el) => {
+      const href = $(el).attr('href');
+      if (href && href.includes('/onemli-duyuru/icerik/')) {
+        foundLink = href.trim();
+        return false; // Break loop, take the first/latest one
       }
-    }
+    });
 
     if (foundLink) {
       const absoluteUrl = foundLink.startsWith('http') 
         ? foundLink 
         : `https://aol.meb.gov.tr${foundLink.startsWith('/') ? '' : '/'}${foundLink}`;
-      console.log('Discovered latest announcement link from category list page fallback:', absoluteUrl);
+      console.log('Discovered latest announcement link from homepage fallback:', absoluteUrl);
       return absoluteUrl;
     }
   } catch (error: any) {
-    console.error('Failed to parse AOL category list page fallback:', error.message);
+    console.error('Failed to parse AOL homepage fallback:', error.message);
   }
   
-  // Hardcoded absolute fallback if both RSS and category page scraping fail
-  return 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/481';
+  // Hardcoded absolute fallback if both RSS and homepage scraping fail
+  return 'https://aol.meb.gov.tr/www/onemli-duyuru/icerik/483/tr';
 }
 
 /**
@@ -168,6 +161,70 @@ function highlightImportantTerms(text: string): string {
   return html;
 }
 
+const genericTitles = [
+  'önemli duyuru',
+  'önemli duyuru!',
+  'duyuru',
+  'duyurular',
+  'haber',
+  'haberler',
+  'açık öğretim lisesi',
+  'açık lise',
+  't.c. milli eğitim',
+  'bakanliği',
+  't.c. milli eğitim bakanliği'
+];
+
+function isGenericTitle(text: string): boolean {
+  const normalized = text.toLocaleLowerCase('tr-TR').replace(/[!\s]/g, '');
+  return genericTitles.some(g => normalized === g.toLocaleLowerCase('tr-TR').replace(/[!\s]/g, ''));
+}
+
+export function extractRealTitle($: cheerio.CheerioAPI): string {
+  const cleanText = (txt: string) => txt.replace(/\s+/g, ' ').trim();
+
+  // 1. Try finding headings inside `.content` first, but only if they are not generic
+  const headingSelectors = ['.content h1', '.content h2', '.content h3', '.content h4', '.content h5', '.content h6'];
+  for (const selector of headingSelectors) {
+    const text = cleanText($(selector).first().text());
+    if (text && text.length > 10 && text.length < 200 && !isGenericTitle(text)) {
+      return text;
+    }
+  }
+
+  // 2. Try finding paragraphs inside `.content` that are bold or contain strong tags
+  const paragraphs = $('.content p');
+  for (let i = 0; i < paragraphs.length; i++) {
+    const p = $(paragraphs[i]);
+    const text = cleanText(p.text());
+    if (text && text.length > 15 && text.length < 250 && !isGenericTitle(text)) {
+      const hasStrong = p.find('strong, b').length > 0 || p.attr('style')?.includes('font-weight') || i === 0;
+      if (hasStrong) {
+        return text;
+      }
+    }
+  }
+
+  // 3. Fallback to the first paragraph inside `.content` with text length > 10
+  for (let i = 0; i < paragraphs.length; i++) {
+    const text = cleanText($(paragraphs[i]).text());
+    if (text && text.length > 10 && text.length < 250 && !isGenericTitle(text)) {
+      return text;
+    }
+  }
+
+  // 4. Try external headings if not generic
+  const extHeadings = ['h1', 'h2', 'h3'];
+  for (const selector of extHeadings) {
+    const text = cleanText($(selector).first().text());
+    if (text && text.length > 10 && text.length < 200 && !isGenericTitle(text)) {
+      return text;
+    }
+  }
+
+  return '';
+}
+
 /**
  * Scrapes the MEB AOL Important Announcement page
  * @param url The URL of the page to scrape
@@ -190,10 +247,13 @@ export async function scrapeAnnouncement(
       }
     }
 
-    // Ensure we are targeting the Turkish version if it's a content page
-    if (targetUrl && !targetUrl.endsWith('/tr') && targetUrl.includes('/icerik/')) {
-      if (/\/\d+$/.test(targetUrl)) {
-        targetUrl = `${targetUrl}/tr`;
+    // Normalize target URL (trim trailing slashes, add /tr if missing)
+    if (targetUrl) {
+      targetUrl = targetUrl.trim().replace(/\/+$/, '');
+      if (!targetUrl.endsWith('/tr') && targetUrl.includes('/icerik/')) {
+        if (/\/\d+$/.test(targetUrl)) {
+          targetUrl = `${targetUrl}/tr`;
+        }
       }
     }
 
@@ -211,45 +271,11 @@ export async function scrapeAnnouncement(
     const $ = cheerio.load(response.data);
 
     // 1. Title Extraction
-    let title = '';
+    let title = extractRealTitle($);
 
-    // Prioritize RSS title if available
-    if (rssTitle) {
+    // Fallback: If title extraction from content page failed, use non-generic RSS title
+    if (!title && rssTitle && !isGenericTitle(rssTitle)) {
       title = rssTitle;
-    }
-
-    // Fallback 1: Cheerio headings (.content h1, .content h2, .content h3, h1, h2, h3)
-    if (!title) {
-      const headingSelectors = ['.content h1', '.content h2', 'h1', 'h2', '.content h3', 'h3'];
-      for (const selector of headingSelectors) {
-        const headingText = $(selector).first().text().trim();
-        if (headingText && headingText.length > 10 && headingText.length < 200) {
-          title = headingText;
-          break;
-        }
-      }
-    }
-
-    // Fallback 2: Check inside .content paragraphs containing strong tags
-    if (!title) {
-      const paragraphs = $('.content p');
-      for (let i = 0; i < paragraphs.length; i++) {
-        const pText = $(paragraphs[i]).text().trim();
-        const hasStrong = $(paragraphs[i]).find('strong').length > 0;
-        
-        if (hasStrong && pText.length > 20 && pText.length < 200) {
-          title = pText;
-          break;
-        }
-      }
-    }
-
-    // Fallback 3: First paragraph inside .content
-    if (!title) {
-      const firstP = $('.content p').first().text().trim();
-      if (firstP && firstP.length > 20 && firstP.length < 200) {
-        title = firstP;
-      }
     }
 
     // Final Fallback
@@ -367,68 +393,104 @@ export function extractDeadline(title: string, description: string): Date | null
     ekim: 9, kasim: 10, kasım: 10, aralik: 11, aralık: 11
   };
 
-  const dates: Date[] = [];
-  
+  interface ParsedDateItem {
+    date: Date;
+    index: number;
+    text: string;
+  }
+
+  const parsedItems: ParsedDateItem[] = [];
+
+  const parseDateParts = (dayStr: string, monthStr: string, yearStr?: string): Date | null => {
+    const day = parseInt(dayStr, 10);
+    let month = -1;
+    
+    if (/^\d+$/.test(monthStr)) {
+      month = parseInt(monthStr, 10) - 1;
+    } else {
+      const normMonth = monthStr.toLowerCase()
+        .replace(/ı/g, 'i')
+        .replace(/ş/g, 's')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c');
+      month = turkishMonths[normMonth];
+    }
+    
+    if (month === -1 || month === undefined) return null;
+    
+    let year = new Date().getFullYear();
+    if (yearStr) {
+      const parsedYear = parseInt(yearStr, 10);
+      year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
+    } else {
+      // New Year/Holiday Transition Check:
+      const currentMonthIndex = new Date().getMonth();
+      if (currentMonthIndex >= 9 && month <= 2) {
+        year = year + 1;
+      }
+    }
+    
+    const date = new Date(Date.UTC(year, month, day));
+    return isNaN(date.getTime()) ? null : date;
+  };
+
   // 1. Match DD.MM.YYYY or DD/MM/YYYY or DD.MM.YY (any 2-digit or 4-digit year; past years filtered downstream)
   const numericRegex = /\b(\d{1,2})[\./-](\d{1,2})[\./-](20\d{2}|\d{2})(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/g;
   let match;
   while ((match = numericRegex.exec(combinedText)) !== null) {
-    const day = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1; // 0-indexed
-    const parsedYear = parseInt(match[3], 10);
-    const year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
-    const date = new Date(Date.UTC(year, month, day));
-    if (!isNaN(date.getTime())) {
-      dates.push(date);
+    const date = parseDateParts(match[1], match[2], match[3]);
+    if (date) {
+      parsedItems.push({
+        date,
+        index: match.index,
+        text: match[0]
+      });
     }
   }
 
   // 2. Match DD MonthName [Year] (Turkish textual dates, e.g. "15 Haziran 2026" or "15 Haziran 26" or "15 Haziran")
   const textRegex = /\b(\d{1,2})\s+([a-zA-ZçıöşüğÇIÖŞÜĞ]+)(?:\s+(20\d{2}|\d{2}))?(?![a-zA-Z0-9çıöşüğÇIÖŞÜĞ:])/gi;
   while ((match = textRegex.exec(combinedText)) !== null) {
-    const day = parseInt(match[1], 10);
-    const monthName = match[2].toLocaleLowerCase('tr-TR')
-      .replace(/ı/g, 'i')
-      .replace(/ş/g, 's')
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c');
-    
-    if (turkishMonths.hasOwnProperty(monthName)) {
-      const month = turkishMonths[monthName];
-      let year = new Date().getFullYear(); // Default to current year
-      
-      if (match[3]) {
-        const parsedYear = parseInt(match[3], 10);
-        year = parsedYear < 100 ? 2000 + parsedYear : parsedYear;
-      } else {
-        // New Year/Holiday Transition Check:
-        // If current month is late in the year (Nov/Dec) and target deadline month is early in the year (Jan-Mar),
-        // we assume the deadline is in the upcoming year (currentYear + 1).
-        const currentMonthIndex = new Date().getMonth();
-        if (currentMonthIndex >= 9 && month <= 2) {
-          year = year + 1;
-        }
-      }
-      
-      const date = new Date(Date.UTC(year, month, day));
-      if (!isNaN(date.getTime())) {
-        dates.push(date);
-      }
+    const date = parseDateParts(match[1], match[2], match[3]);
+    if (date) {
+      parsedItems.push({
+        date,
+        index: match.index,
+        text: match[0]
+      });
     }
   }
 
-  if (dates.length === 0) return null;
+  if (parsedItems.length === 0) return null;
 
   // Filter out dates that are in the past relative to the system baseline (current year)
   const currentYear = new Date().getFullYear();
-  const validDates = dates.filter(d => d.getUTCFullYear() >= currentYear);
-  if (validDates.length === 0) return null;
+  const validItems = parsedItems.filter(item => item.date.getUTCFullYear() >= currentYear);
+  if (validItems.length === 0) return null;
 
-  // Sort ascending, return the latest date
-  validDates.sort((a, b) => a.getTime() - b.getTime());
-  return validDates[validDates.length - 1];
+  // Check if any of these dates is followed by the Turkish keyword "kadar" (within 80 characters)
+  const kadarRegex = /kadar/i;
+  const deadlineDates: Date[] = [];
+  
+  for (const item of validItems) {
+    const startIndex = item.index + item.text.length;
+    const lookAheadText = combinedText.substring(startIndex, startIndex + 80);
+    if (kadarRegex.test(lookAheadText)) {
+      deadlineDates.push(item.date);
+    }
+  }
+
+  if (deadlineDates.length > 0) {
+    // Return the latest date that has a "kadar" indicator
+    deadlineDates.sort((a, b) => a.getTime() - b.getTime());
+    return deadlineDates[deadlineDates.length - 1];
+  }
+
+  // Fallback: return the latest parsed date
+  const allDatesSorted = validItems.map(item => item.date).sort((a, b) => a.getTime() - b.getTime());
+  return allDatesSorted[allDatesSorted.length - 1];
 }
 
 /**

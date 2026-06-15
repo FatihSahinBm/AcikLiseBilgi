@@ -12,7 +12,7 @@ async function addAnnouncementToHistory(announcement: any) {
     let history = await redis.get<any[]>(historyKey) || [];
     
     // Check if this announcement already exists in history
-    const exists = history.some((item: any) => item.id === announcement.id || item.title === announcement.title);
+    const exists = history.some((item: any) => item.id === announcement.id || item.link === announcement.link);
     if (!exists) {
       history = [announcement, ...history];
       history = history.slice(0, 5);
