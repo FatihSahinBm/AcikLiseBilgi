@@ -74,9 +74,15 @@ export async function sendBroadcastNotification(
       }
     );
 
-    if (response.data && response.data.id) {
-      console.log('OneSignal Push Broadcast sent successfully. Notification ID:', response.data.id);
-      return { success: true, id: response.data.id };
+    if (response.data) {
+      if (response.data.id) {
+        console.log('OneSignal Push Broadcast sent successfully. Notification ID:', response.data.id);
+        return { success: true, id: response.data.id };
+      }
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.warn('OneSignal Push Broadcast failed:', response.data.errors);
+        return { success: false, error: response.data.errors[0] };
+      }
     }
 
     return { success: false, error: 'Unknown response from OneSignal' };
@@ -145,9 +151,15 @@ export async function sendTargetedNotification(
       }
     );
 
-    if (response.data && response.data.id) {
-      console.log('OneSignal Targeted Push sent successfully. Notification ID:', response.data.id);
-      return { success: true, id: response.data.id };
+    if (response.data) {
+      if (response.data.id) {
+        console.log('OneSignal Targeted Push sent successfully. Notification ID:', response.data.id);
+        return { success: true, id: response.data.id };
+      }
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.warn('OneSignal Targeted Push failed:', response.data.errors);
+        return { success: false, error: response.data.errors[0] };
+      }
     }
 
     return { success: false, error: 'Unknown response' };
