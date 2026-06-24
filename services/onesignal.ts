@@ -42,7 +42,7 @@ export async function sendBroadcastNotification(
   try {
     const payload = {
       app_id: config.appId,
-      included_segments: ['Subscribed Users'], // Target all subscribed devices
+      included_segments: ['Total Subscriptions'], // Target all subscribed devices
       headings: {
         en: 'Açık Lise (AOL) Duyuru',
         tr: title
