@@ -24,16 +24,8 @@ const INITIAL_SEED_MESSAGES: ChatMessage[] = [
     author: 'Açık Lise Asistanı 🎀',
     avatar: '🐱',
     text: 'Açık Lise Topluluk Sohbetine hoş geldiniz! Sınavlar, kayıt yenileme ve dersler hakkında buradan yardımlaşabilirsiniz. 🌸',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    createdAt: new Date().toISOString(),
     badge: 'Yönetici'
-  },
-  {
-    id: 'seed-2',
-    author: 'Elif (12. Dönem)',
-    avatar: '🎓',
-    text: 'Dönem dersleri sisteme yüklenmiş, sınav geri sayımını takip etmeyi unutmayın arkadaşlar! Herkese başarılar ✨',
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    badge: 'Öğrenci'
   }
 ];
 
@@ -44,6 +36,15 @@ export async function GET() {
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       messages = INITIAL_SEED_MESSAGES;
       await redis.set(CHAT_STORAGE_KEY, messages);
+    } else {
+      // Purge any legacy seed-2 or Elif messages from the store
+      const filtered = messages.filter(
+        (m) => m.id !== 'seed-2' && !m.author?.includes('Elif')
+      );
+      if (filtered.length !== messages.length) {
+        messages = filtered;
+        await redis.set(CHAT_STORAGE_KEY, messages);
+      }
     }
 
     return NextResponse.json(
