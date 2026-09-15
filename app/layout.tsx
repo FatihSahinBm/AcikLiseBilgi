@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
+import PWAUpdateManager from '@/components/PWAUpdateManager';
 
 // Load Inter font for highly premium typography instead of system defaults
 const inter = Inter({ subsets: ['latin'] });
@@ -31,7 +32,8 @@ export const metadata: Metadata = {
     apple: '/icons/icon-180x180.png'
   },
   other: {
-    'mobile-web-app-capable': 'yes'
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes'
   }
 };
 
@@ -42,7 +44,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="h-full scroll-smooth">
+      <head>
+        {/* Force iOS Safari Home-Screen WebClips to revalidate HTML & assets */}
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+      </head>
       <body className={`${inter.className} min-h-full bg-[#ffe5ec] text-zinc-800 antialiased flex flex-col`}>
+        {/* iOS PWA Auto-Updater & Cache Buster */}
+        <PWAUpdateManager />
+
         {children}
         
         {/* Load official OneSignal Web SDK page script asynchronously */}

@@ -25,9 +25,11 @@ import {
   BookOpen,
   Trash2,
   ClipboardList,
-  GraduationCap
+  GraduationCap,
+  MessageCircle
 } from 'lucide-react';
 import { getSyllabusForCourse, lessonsMuster } from '@/constants/lessonsMuster';
+import ChatSection from '@/components/ChatSection';
 
 interface FileAttachment {
   title: string;
@@ -290,7 +292,18 @@ export default function Dashboard({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Tab Navigation State
-  const [activeTab, setActiveTab] = useState<'home' | 'lessons'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'lessons' | 'chat'>('home');
+
+  // Check URL query for tab navigation (e.g. from push notifications /?tab=chat)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'chat' || tabParam === 'lessons' || tabParam === 'home') {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
 
   // Derslerim States
   const [courses, setCourses] = useState<string[]>([]);
@@ -1533,7 +1546,7 @@ export default function Dashboard({
             </div>
           )}
         </>
-      ) : (
+      ) : activeTab === 'lessons' ? (
         /* Lessons Cockpit Tab Render Area */
         <div className="space-y-6 animate-fade-in text-left">
           {courses.length === 0 ? (
@@ -1768,6 +1781,9 @@ export default function Dashboard({
             </div>
           )}
         </div>
+      ) : (
+        /* Community Chat Tab Render Area */
+        <ChatSection />
       )}
 
       {/* Informative Footer */}
@@ -1819,6 +1835,22 @@ export default function Dashboard({
             <span className="text-[10px] tracking-wide select-none">Derslerim</span>
             <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
               activeTab === 'lessons' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+            }`} />
+          </button>
+
+          {/* Sohbet (Derslerim'in tam sağına) */}
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+              activeTab === 'chat' 
+                ? 'text-pink-600 scale-105 font-bold' 
+                : 'text-zinc-500 hover:text-pink-500'
+            }`}
+          >
+            <MessageCircle className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'chat' ? 'scale-110' : 'group-hover:scale-110'}`} />
+            <span className="text-[10px] tracking-wide select-none">Sohbet</span>
+            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+              activeTab === 'chat' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
             }`} />
           </button>
         </div>
