@@ -12,10 +12,12 @@ import {
   Smile,
   Copy,
   Check,
+  CheckCheck,
+  Clock,
+  Smartphone,
   ChevronDown,
   ChevronUp,
   ArrowDown,
-  Trash2,
   Lock,
   MessageCircle,
   ExternalLink
@@ -33,6 +35,65 @@ const QUICK_PROMPTS = [
 
 const REACTION_EMOJIS = ['❤️', '🥺', '🌸', '😂', '🫂', '✨'];
 
+export interface DeviceDetectionResult {
+  author: 'Ceyda' | 'Fatih';
+  avatar: string;
+  deviceName: string;
+}
+
+// iPhone 11 / 11 Pro vs. iPhone 17 Pro Max / Apple iPhone device detector
+export function detectDeviceAuthor(): DeviceDetectionResult {
+  if (typeof window === 'undefined') {
+    return { author: 'Fatih', avatar: '🎓', deviceName: 'Apple iPhone' };
+  }
+
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  
+  // Ekran boyutları (CSS pikselleri ve DPR)
+  const screenW = window.screen.width;
+  const screenH = window.screen.height;
+  const dpr = window.devicePixelRatio || 1;
+  const minDim = Math.min(screenW, screenH);
+  const maxDim = Math.max(screenW, screenH);
+
+  // iPhone 11 ve 11 Pro serisi tespiti:
+  // iPhone 11 / XR: 414 x 896, DPR = 2
+  // iPhone 11 Pro / X / XS: 375 x 812, DPR = 3
+  // iPhone 11 Pro Max / XS Max: 414 x 896, DPR = 3
+  const isIphone11OrXR = minDim === 414 && maxDim === 896 && Math.round(dpr) === 2;
+  const isIphone11Pro = minDim === 375 && maxDim === 812 && Math.round(dpr) === 3;
+  const isIphone11ProMax = minDim === 414 && maxDim === 896 && Math.round(dpr) === 3;
+
+  // Ekran boyutu 896 veya daha küçük ve 414 veya daha dar olan seriler
+  const isIphone11Family = isIOS && (
+    isIphone11OrXR ||
+    isIphone11Pro ||
+    isIphone11ProMax ||
+    (maxDim <= 896 && minDim <= 414 && maxDim !== 844 && maxDim !== 852 && maxDim !== 932 && maxDim !== 956)
+  );
+
+  // iPhone 17 Pro Max / 16 Pro Max / 15 Pro Max / 14 Pro Max
+  const isProMax = isIOS && (
+    (minDim >= 430 && maxDim >= 932) ||
+    (minDim >= 440 && maxDim >= 956)
+  );
+
+  if (isIphone11Family) {
+    let name = 'iPhone 11';
+    if (isIphone11Pro) name = 'iPhone 11 Pro';
+    if (isIphone11ProMax) name = 'iPhone 11 Pro Max';
+    return { author: 'Ceyda', avatar: '🎀', deviceName: name };
+  }
+
+  if (isProMax) {
+    return { author: 'Fatih', avatar: '🎓', deviceName: 'iPhone 17 Pro Max' };
+  }
+
+  // Varsayılan iOS cihazlar (Apple iPhone) veya masaüstü/diğer -> Fatih
+  return { author: 'Fatih', avatar: '🎓', deviceName: isIOS ? 'Apple iPhone' : 'Web Cihazı' };
+}
+
 interface ChatSectionProps {
   onKeyboardChange?: (isOpen: boolean) => void;
 }
@@ -42,10 +103,17 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   const [inputText, setInputText] = useState('');
   const [authorName, setAuthorName] = useState<string>('Fatih');
   const [selectedAvatar, setSelectedAvatar] = useState<string>('🎓');
+  const [detectedInfo, setDetectedInfo] = useState<DeviceDetectionResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Read receipts (Last Seen by Fatih & Ceyda)
+  const [lastSeenTimes, setLastSeenTimes] = useState<{ Fatih: string | null; Ceyda: string | null }>({
+    Fatih: null,
+    Ceyda: null
+  });
 
   // Search feature states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -64,8 +132,8 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   // Scroll to bottom button visibility
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-  // Safari iOS keyboard & viewport management
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  // Safari iOS keyboard & visualViewport management
+  const [viewportMetrics, setViewportMetrics] = useState<{ height: number; top: number } | null>(null);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -73,29 +141,21 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   const isFirstLoad = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved profile or migrate from legacy
+  // Auto-detect device (iPhone 11 -> Ceyda, iPhone 17 Pro Max / Apple iPhone -> Fatih)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem('aol_chat_dm_author');
-      const legacyName = localStorage.getItem('aol_chat_author_name');
+      const detected = detectDeviceAuthor();
+      setDetectedInfo(detected);
 
-      if (savedName) {
+      const savedName = localStorage.getItem('aol_chat_dm_author');
+      if (savedName === 'Ceyda' || savedName === 'Fatih') {
         setAuthorName(savedName);
-        setSelectedAvatar(savedName.toLowerCase().includes('ceyda') ? '🎀' : '🎓');
-      } else if (legacyName) {
-        if (legacyName.toLowerCase().includes('ceyda') || legacyName === 'Açık Liseli') {
-          setAuthorName('Ceyda');
-          setSelectedAvatar('🎀');
-          localStorage.setItem('aol_chat_dm_author', 'Ceyda');
-        } else {
-          setAuthorName('Fatih');
-          setSelectedAvatar('🎓');
-          localStorage.setItem('aol_chat_dm_author', 'Fatih');
-        }
+        setSelectedAvatar(savedName === 'Ceyda' ? '🎀' : '🎓');
       } else {
-        setAuthorName('Fatih');
-        setSelectedAvatar('🎓');
-        localStorage.setItem('aol_chat_dm_author', 'Fatih');
+        // Automatic detection fallback
+        setAuthorName(detected.author);
+        setSelectedAvatar(detected.avatar);
+        localStorage.setItem('aol_chat_dm_author', detected.author);
       }
     }
   }, []);
@@ -120,11 +180,14 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
 
     const handleViewportChange = () => {
       if (window.visualViewport) {
-        const height = window.visualViewport.height;
-        setViewportHeight(height);
+        const vv = window.visualViewport;
+        setViewportMetrics({
+          height: vv.height,
+          top: vv.offsetTop
+        });
 
         // Check if keyboard is open
-        const keyboardActive = window.innerHeight - height > 140;
+        const keyboardActive = window.innerHeight - vv.height > 140;
         setIsKeyboardOpen(keyboardActive);
         if (onKeyboardChange) {
           onKeyboardChange(keyboardActive);
@@ -133,7 +196,7 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
         // Prevent Safari from bouncing the outer window
         if (keyboardActive) {
           window.scrollTo(0, 0);
-          // Keep bottom message in view
+          document.body.scrollTop = 0;
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
       }
@@ -145,11 +208,20 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
       handleViewportChange();
     }
 
+    // Lock page window scroll when chat is active
+    const handleWindowScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
         window.visualViewport.removeEventListener('scroll', handleViewportChange);
       }
+      window.removeEventListener('scroll', handleWindowScroll);
     };
   }, [onKeyboardChange]);
 
@@ -166,17 +238,21 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
     };
   }, []);
 
-  // Fetch messages from API (NEVER purges, loads full history)
+  // Fetch messages from API (NEVER purges, loads full history and tracks read status)
   const fetchMessages = async (silent: boolean = false) => {
     if (!silent) setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/chat?_t=${Date.now()}`, {
+      const userParam = authorName ? `&user=${encodeURIComponent(authorName)}` : '';
+      const res = await fetch(`/api/chat?_t=${Date.now()}${userParam}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.messages)) {
         setMessages(data.messages);
+        if (data.lastSeen) {
+          setLastSeenTimes(data.lastSeen);
+        }
       }
     } catch (err) {
       console.error('Chat fetch error:', err);
@@ -197,7 +273,7 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [authorName]);
 
   // Initial scroll to bottom
   useEffect(() => {
@@ -373,19 +449,19 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
     }
   };
 
-  // Delete message
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+  // Read status helper: true if receiver opened chat after this message was sent
+  const isMessageRead = (msg: ChatMessage) => {
+    if (!msg || msg.id.startsWith('temp_')) return false;
+    const partnerKey = authorName === 'Ceyda' ? 'Fatih' : 'Ceyda';
+    const partnerSeen = lastSeenTimes[partnerKey];
+    if (!partnerSeen) return false;
+
     try {
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', messageId })
-      });
-      showToast('Mesaj silindi.');
-    } catch (err) {
-      console.error('Delete error:', err);
+      const msgTime = new Date(msg.createdAt).getTime();
+      const seenTime = new Date(partnerSeen).getTime();
+      return seenTime >= msgTime;
+    } catch {
+      return false;
     }
   };
 
@@ -481,49 +557,66 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
 
   return (
     <div
-      className="flex flex-col w-full h-full max-h-full overflow-hidden text-left relative select-text"
+      className="fixed inset-0 z-40 bg-[#ffe5ec] flex flex-col justify-between overflow-hidden select-text text-left"
       style={{
-        height: viewportHeight ? `${viewportHeight - (isKeyboardOpen ? 10 : 75)}px` : 'calc(100dvh - 85px)'
+        height: viewportMetrics ? `${viewportMetrics.height}px` : '100dvh',
+        maxHeight: viewportMetrics ? `${viewportMetrics.height}px` : '100dvh',
+        top: viewportMetrics ? `${viewportMetrics.top}px` : 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 6px)',
+        paddingBottom: isKeyboardOpen ? '4px' : 'calc(env(safe-area-inset-bottom, 0px) + 68px)'
       }}
     >
-      {/* Toast Alert Notification */}
-      {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-pink-600 to-rose-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in pointer-events-none">
-          <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <div className="w-full max-w-4xl mx-auto flex flex-col h-full overflow-hidden px-2 sm:px-4">
+        {/* Toast Alert Notification */}
+        {toastMessage && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-pink-600 to-rose-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in pointer-events-none">
+            <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
 
-      {/* TOP DM HEADER BAR */}
-      <div className="shrink-0 bg-white/95 backdrop-blur-md border border-pink-200/80 rounded-2xl p-2.5 sm:p-3 shadow-md shadow-pink-100/40 mb-2">
-        <div className="flex items-center justify-between gap-2">
-          {/* Couple Title & Live Status */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-lg shadow-sm text-white">
-                💖
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white"></span>
-              </span>
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-sm sm:text-base font-black text-zinc-800 tracking-tight truncate">
-                  Ceyda & Fatih
-                </h2>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-pink-100 text-pink-700 rounded-md shrink-0">
-                  Özel DM
+        {/* TOP DM HEADER BAR */}
+        <div className="shrink-0 bg-white/95 backdrop-blur-md border border-pink-200/80 rounded-2xl p-2.5 sm:p-3 shadow-md shadow-pink-100/40 mb-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* Couple Title & Live Status & Device Detection Pill */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-lg shadow-sm text-white">
+                  💖
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white"></span>
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-500 flex items-center gap-1 truncate">
-                <Lock className="w-3 h-3 text-pink-500 shrink-0" />
-                <span>Uçtan uca şifreli özel alan • {messages.length} mesaj</span>
-              </p>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-black text-zinc-800 tracking-tight truncate">
+                    Ceyda & Fatih
+                  </h2>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-pink-100 text-pink-700 rounded-md shrink-0">
+                    Özel DM
+                  </span>
+                  {detectedInfo && (
+                    <span
+                      className="text-[10px] font-semibold text-pink-700 bg-pink-50/80 border border-pink-200/60 px-1.5 py-0.5 rounded-md hidden xs:inline-flex items-center gap-1 shrink-0"
+                      title={`Algılanan Cihaz: ${detectedInfo.deviceName} (${detectedInfo.author})`}
+                    >
+                      <Smartphone className="w-2.5 h-2.5 text-pink-500" />
+                      <span>{detectedInfo.deviceName}</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-zinc-500 flex items-center gap-1 truncate">
+                  <Lock className="w-3 h-3 text-pink-500 shrink-0" />
+                  <span>Uçtan uca şifreli özel alan • {messages.length} mesaj</span>
+                </p>
+              </div>
             </div>
-          </div>
 
           {/* Right Action Icons: Identity Switcher & Search & Refresh */}
           <div className="flex items-center gap-1.5 shrink-0">
@@ -787,16 +880,6 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
                         >
                           <Copy className="w-3 h-3" />
                         </button>
-
-                        {isMe && (
-                          <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="p-1 rounded hover:bg-black/10 transition-colors cursor-pointer text-pink-200 hover:text-white"
-                            title="Sil"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -805,14 +888,30 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
                       {renderMessageText(msg.text)}
                     </p>
 
-                    {/* Timestamp & double checkmark */}
+                    {/* Timestamp & single/double checkmark status */}
                     <div
                       className={`text-[9px] mt-1.5 flex items-center justify-end gap-1 select-none ${
-                        isMe ? 'text-pink-200' : 'text-zinc-400'
+                        isMe ? 'text-pink-100' : 'text-zinc-400'
                       }`}
                     >
                       <span>{formatMessageTime(msg.createdAt)}</span>
-                      {isMe && <Check className="w-3 h-3 text-pink-200 inline" />}
+                      {isMe && (
+                        <>
+                          {msg.id.startsWith('temp_') ? (
+                            <span className="inline-flex items-center" title="Gönderiliyor...">
+                              <Clock className="w-2.5 h-2.5 text-pink-200 animate-spin inline" />
+                            </span>
+                          ) : isMessageRead(msg) ? (
+                            <span className="inline-flex items-center text-sky-200 font-bold" title="Okundu (Çift Tik)">
+                              <CheckCheck className="w-3.5 h-3.5 inline drop-shadow-xs" />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-pink-200/90" title="İletildi (Tek Tik)">
+                              <Check className="w-3 h-3 inline" />
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
 
                     {/* Reactions display pills */}
@@ -992,6 +1091,7 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
           )}
         </button>
       </form>
+      </div>
     </div>
   );
 }

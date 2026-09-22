@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
-const CURRENT_CLIENT_VERSION = '2026.09.22-dm-v2';
+const CURRENT_CLIENT_VERSION = '2026.09.22-dm-v3';
 const STORAGE_KEY = 'aol_pwa_app_version';
 
 export default function PWAUpdateManager() {

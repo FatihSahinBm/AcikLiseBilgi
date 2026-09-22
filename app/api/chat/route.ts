@@ -26,16 +26,36 @@ const LAST_PUSH_KEY = 'aol_chat_last_push_timestamp';
 const PUSH_COOLDOWN_MS = 15 * 1000; // 15 seconds cooldown for personal DM push notifications
 const MAX_STORED_MESSAGES = 10000; // Keep full message history without accidental loss
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    let messages = await redis.get<ChatMessage[]>(CHAT_STORAGE_KEY);
+    const { searchParams } = new URL(request.url);
+    const currentUser = searchParams.get('user');
 
-    if (!messages || !Array.isArray(messages)) {
-      messages = [];
+    // Update lastSeen timestamp if user is specified
+    if (currentUser) {
+      const normalizedUser = currentUser.toLowerCase().includes('ceyda') ? 'Ceyda' : 'Fatih';
+      try {
+        await redis.set(`aol_chat_last_seen_${normalizedUser}`, new Date().toISOString());
+      } catch (err) {
+        console.error('Error updating lastSeen in Redis:', err);
+      }
     }
 
+    const [messages, fatihSeen, ceydaSeen] = await Promise.all([
+      redis.get<ChatMessage[]>(CHAT_STORAGE_KEY),
+      redis.get<string>('aol_chat_last_seen_Fatih'),
+      redis.get<string>('aol_chat_last_seen_Ceyda')
+    ]);
+
     return NextResponse.json(
-      { success: true, messages },
+      {
+        success: true,
+        messages: Array.isArray(messages) ? messages : [],
+        lastSeen: {
+          Fatih: fatihSeen || null,
+          Ceyda: ceydaSeen || null
+        }
+      },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
@@ -45,7 +65,7 @@ export async function GET() {
   } catch (error: any) {
     console.error('API /api/chat GET error:', error);
     return NextResponse.json(
-      { success: false, error: 'Mesajlar yüklenirken bir sorun oluştu.', messages: [] },
+      { success: false, error: 'Mesajlar yüklenirken bir sorun oluştu.', messages: [], lastSeen: { Fatih: null, Ceyda: null } },
       { status: 500 }
     );
   }
@@ -102,15 +122,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. DELETE MESSAGE ACTION
+    // 2. DELETE MESSAGE ACTION - DISABLED BY USER REQUEST
     if (body.action === 'delete') {
-      const { messageId } = body;
-      let messages = await redis.get<ChatMessage[]>(CHAT_STORAGE_KEY);
-      if (messages && Array.isArray(messages)) {
-        messages = messages.filter((m) => m.id !== messageId);
-        await redis.set(CHAT_STORAGE_KEY, messages);
-      }
-      return NextResponse.json({ success: true, action: 'delete', messageId });
+      return NextResponse.json(
+        { success: false, error: 'Özel DM güvenliği için mesaj silme özelliği kapatılmıştır.' },
+        { status: 403 }
+      );
     }
 
     // 3. SEND NEW MESSAGE
