@@ -8,11 +8,12 @@ import PWAUpdateManager from '@/components/PWAUpdateManager';
 const inter = Inter({ subsets: ['latin'] });
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#ffe5ec',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false // Prevents the browser zoom effect on inputs, giving a 100% native feel on iOS
+  userScalable: false, // Prevents the browser zoom effect on inputs, giving a 100% native feel on iOS
+  interactiveWidget: 'resizes-content' // Tells Safari/mobile browsers to resize content when virtual keyboard opens
 };
 
 export const metadata: Metadata = {

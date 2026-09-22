@@ -315,6 +315,7 @@ export default function Dashboard({
   // Manuel ders arama / ekleme
   const [manualSearch, setManualSearch] = useState<string>('');
   const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
+  const [isChatKeyboardOpen, setIsChatKeyboardOpen] = useState<boolean>(false);
 
   // Load saved courses on initial mount
   useEffect(() => {
@@ -1142,7 +1143,11 @@ export default function Dashboard({
   };
 
   return (
-    <div className="w-full max-w-4xl px-4 sm:px-6 py-6 sm:py-10 pb-28 space-y-8 relative z-10">
+    <div className={`w-full max-w-4xl mx-auto relative z-10 ${
+      activeTab === 'chat'
+        ? 'px-2 sm:px-4 pt-1 sm:pt-2 pb-0 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden'
+        : 'px-4 sm:px-6 py-6 sm:py-10 pb-28 space-y-8'
+    }`}>
 
       {/* Premium Success/Error Toast notification banner */}
       {toast && (
@@ -1160,10 +1165,12 @@ export default function Dashboard({
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-pink-400/20 blur-[80px] sm:blur-[120px] pointer-events-none -z-10" />
 
       {/* Page Title Header (Without card container) */}
-      <div className="flex items-center gap-3 select-none">
-        <HelloKittyBow />
-        <h1 className="text-2xl font-black bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">AOL Duyuru Takip</h1>
-      </div>
+      {activeTab !== 'chat' && (
+        <div className="flex items-center gap-3 select-none">
+          <HelloKittyBow />
+          <h1 className="text-2xl font-black bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">AOL Duyuru Takip</h1>
+        </div>
+      )}
 
       {activeTab === 'home' ? (
         <>
@@ -1782,31 +1789,39 @@ export default function Dashboard({
           )}
         </div>
       ) : (
-        /* Community Chat Tab Render Area */
-        <ChatSection />
+        /* Ceyda & Fatih Özel DM Alanı */
+        <ChatSection onKeyboardChange={setIsChatKeyboardOpen} />
       )}
 
       {/* Informative Footer */}
-      <footer className="text-center text-xs text-pink-650/70 pt-6 space-y-2 border-t border-pink-200/50">
-        <p>© 2026 MEB AOL Duyuru Takip PWA uygulaması. 🎀</p>
-        <p className="max-w-md mx-auto leading-relaxed text-zinc-500">
-          Bu uygulama MEB sitesini her 15 dakikada bir kontrol eder ve güncellemeleri iPhone / Android PWA
-          cihazlarınıza anında iletir.
-        </p>
-      </footer>
+      {activeTab !== 'chat' && (
+        <footer className="text-center text-xs text-pink-650/70 pt-6 space-y-2 border-t border-pink-200/50">
+          <p>© 2026 MEB AOL Duyuru Takip PWA uygulaması. 🎀</p>
+          <p className="max-w-md mx-auto leading-relaxed text-zinc-500">
+            Bu uygulama MEB sitesini her 15 dakikada bir kontrol eder ve güncellemeleri iPhone / Android PWA
+            cihazlarınıza anında iletir.
+          </p>
+        </footer>
+      )}
 
       {/* Floating looping Hello Kitty GIF in the bottom right corner */}
-      <div className="fixed bottom-20 right-4 z-40 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none select-none drop-shadow-[0_4px_12px_rgba(244,63,94,0.2)] animate-bounce" style={{ animationDuration: '4s' }}>
-        <img
-          src="https://media.tenor.com/y_DklcOGDqYAAAAi/hello-kitty.gif"
-          alt="Hello Kitty Sticker"
-          className="w-full h-full object-contain"
-          loading="lazy"
-        />
-      </div>
+      {activeTab !== 'chat' && (
+        <div className="fixed bottom-20 right-4 z-40 w-20 h-20 sm:w-28 sm:h-28 pointer-events-none select-none drop-shadow-[0_4px_12px_rgba(244,63,94,0.2)] animate-bounce" style={{ animationDuration: '4s' }}>
+          <img
+            src="https://media.tenor.com/y_DklcOGDqYAAAAi/hello-kitty.gif"
+            alt="Hello Kitty Sticker"
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+        </div>
+      )}
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)]">
+      <div className={`fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)] transition-transform duration-200 ${
+        isChatKeyboardOpen && activeTab === 'chat'
+          ? 'translate-y-full opacity-0 pointer-events-none'
+          : 'translate-y-0 opacity-100'
+      }`}>
         <div className="max-w-4xl mx-auto flex items-center justify-around py-2.5 px-6">
           <button
             onClick={() => setActiveTab('home')}
@@ -1838,7 +1853,7 @@ export default function Dashboard({
             }`} />
           </button>
 
-          {/* Sohbet (Derslerim'in tam sağına) */}
+          {/* Ceyda & Fatih Özel DM Sekmesi */}
           <button
             onClick={() => setActiveTab('chat')}
             className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
@@ -1847,8 +1862,8 @@ export default function Dashboard({
                 : 'text-zinc-500 hover:text-pink-500'
             }`}
           >
-            <MessageCircle className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'chat' ? 'scale-110' : 'group-hover:scale-110'}`} />
-            <span className="text-[10px] tracking-wide select-none">Sohbet</span>
+            <MessageCircle className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'chat' ? 'scale-110 text-pink-500' : 'group-hover:scale-110'}`} />
+            <span className="text-[10px] tracking-wide select-none">Özel DM 💖</span>
             <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
               activeTab === 'chat' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
             }`} />

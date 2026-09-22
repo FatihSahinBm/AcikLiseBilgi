@@ -3,8 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Update this version token whenever a new release is deployed
-export const APP_VERSION = '2026.09.2-chat-v1';
+export const APP_VERSION = '2026.09.22-dm-v2';
 
 export async function GET() {
   return NextResponse.json(

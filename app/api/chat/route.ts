@@ -4,6 +4,12 @@ import { sendBroadcastNotification } from '@/services/onesignal';
 
 export const dynamic = 'force-dynamic';
 
+export interface ChatReplyPreview {
+  id: string;
+  author: string;
+  text: string;
+}
+
 export interface ChatMessage {
   id: string;
   author: string;
@@ -11,40 +17,21 @@ export interface ChatMessage {
   text: string;
   createdAt: string;
   badge?: string;
+  replyTo?: ChatReplyPreview;
+  reactions?: Record<string, string[]>; // { "❤️": ["Fatih"], ... }
 }
 
 const CHAT_STORAGE_KEY = 'aol_chat_messages';
 const LAST_PUSH_KEY = 'aol_chat_last_push_timestamp';
-const PUSH_COOLDOWN_MS = 25 * 1000; // 25 seconds between global push notifications
-
-// Initial seed messages if chat is brand new
-const INITIAL_SEED_MESSAGES: ChatMessage[] = [
-  {
-    id: 'seed-1',
-    author: 'Açık Lise Asistanı 🎀',
-    avatar: '🐱',
-    text: 'Açık Lise Topluluk Sohbetine hoş geldiniz! Sınavlar, kayıt yenileme ve dersler hakkında buradan yardımlaşabilirsiniz. 🌸',
-    createdAt: new Date().toISOString(),
-    badge: 'Yönetici'
-  }
-];
+const PUSH_COOLDOWN_MS = 15 * 1000; // 15 seconds cooldown for personal DM push notifications
+const MAX_STORED_MESSAGES = 10000; // Keep full message history without accidental loss
 
 export async function GET() {
   try {
     let messages = await redis.get<ChatMessage[]>(CHAT_STORAGE_KEY);
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      messages = INITIAL_SEED_MESSAGES;
-      await redis.set(CHAT_STORAGE_KEY, messages);
-    } else {
-      // Purge any legacy seed-2 or Elif messages from the store
-      const filtered = messages.filter(
-        (m) => m.id !== 'seed-2' && !m.author?.includes('Elif')
-      );
-      if (filtered.length !== messages.length) {
-        messages = filtered;
-        await redis.set(CHAT_STORAGE_KEY, messages);
-      }
+    if (!messages || !Array.isArray(messages)) {
+      messages = [];
     }
 
     return NextResponse.json(
@@ -67,12 +54,72 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { author, text, avatar, badge } = body;
+
+    // 1. REACTION TOGGLE ACTION
+    if (body.action === 'react') {
+      const { messageId, emoji, user } = body;
+      if (!messageId || !emoji || !user) {
+        return NextResponse.json({ success: false, error: 'Eksik reaksiyon parametresi.' }, { status: 400 });
+      }
+
+      let messages = await redis.get<ChatMessage[]>(CHAT_STORAGE_KEY);
+      if (!messages || !Array.isArray(messages)) {
+        return NextResponse.json({ success: false, error: 'Mesaj bulunamadı.' }, { status: 404 });
+      }
+
+      const msgIndex = messages.findIndex((m) => m.id === messageId);
+      if (msgIndex === -1) {
+        return NextResponse.json({ success: false, error: 'Mesaj bulunamadı.' }, { status: 404 });
+      }
+
+      const targetMsg = messages[msgIndex];
+      targetMsg.reactions = targetMsg.reactions || {};
+
+      const existingReactors = targetMsg.reactions[emoji] || [];
+      const userIdx = existingReactors.indexOf(user);
+
+      if (userIdx > -1) {
+        // Remove reaction
+        existingReactors.splice(userIdx, 1);
+        if (existingReactors.length === 0) {
+          delete targetMsg.reactions[emoji];
+        } else {
+          targetMsg.reactions[emoji] = existingReactors;
+        }
+      } else {
+        // Add reaction
+        existingReactors.push(user);
+        targetMsg.reactions[emoji] = existingReactors;
+      }
+
+      messages[msgIndex] = targetMsg;
+      await redis.set(CHAT_STORAGE_KEY, messages);
+
+      return NextResponse.json({
+        success: true,
+        action: 'react',
+        message: targetMsg
+      });
+    }
+
+    // 2. DELETE MESSAGE ACTION
+    if (body.action === 'delete') {
+      const { messageId } = body;
+      let messages = await redis.get<ChatMessage[]>(CHAT_STORAGE_KEY);
+      if (messages && Array.isArray(messages)) {
+        messages = messages.filter((m) => m.id !== messageId);
+        await redis.set(CHAT_STORAGE_KEY, messages);
+      }
+      return NextResponse.json({ success: true, action: 'delete', messageId });
+    }
+
+    // 3. SEND NEW MESSAGE
+    let { author, text, avatar, badge, replyTo } = body;
 
     // Sanitize & validate author
     author = typeof author === 'string' ? author.trim() : '';
-    if (!author || author.length < 2) {
-      author = 'Açık Liseli 🎀';
+    if (!author || author.length < 1) {
+      author = 'Fatih';
     } else if (author.length > 30) {
       author = author.substring(0, 30);
     }
@@ -85,12 +132,24 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (text.length > 400) {
-      text = text.substring(0, 400);
+    if (text.length > 1500) {
+      text = text.substring(0, 1500);
     }
 
-    // Avatar default
-    avatar = typeof avatar === 'string' && avatar ? avatar : '🌸';
+    // Avatar default based on author
+    if (!avatar) {
+      avatar = author.toLowerCase().includes('ceyda') ? '🎀' : '🎓';
+    }
+
+    // Validated replyTo
+    let sanitizedReplyTo: ChatReplyPreview | undefined = undefined;
+    if (replyTo && replyTo.id) {
+      sanitizedReplyTo = {
+        id: String(replyTo.id),
+        author: String(replyTo.author || '').substring(0, 30),
+        text: String(replyTo.text || '').substring(0, 150)
+      };
+    }
 
     const newMessage: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -98,7 +157,9 @@ export async function POST(request: NextRequest) {
       avatar,
       text,
       createdAt: new Date().toISOString(),
-      badge: badge ? String(badge).substring(0, 20) : undefined
+      badge: badge ? String(badge).substring(0, 20) : undefined,
+      replyTo: sanitizedReplyTo,
+      reactions: {}
     };
 
     // Retrieve existing messages
@@ -107,10 +168,10 @@ export async function POST(request: NextRequest) {
       messages = [];
     }
 
-    // Add new message and keep the most recent 120 messages
+    // Append new message and enforce high safety limit (10,000)
     messages.push(newMessage);
-    if (messages.length > 120) {
-      messages = messages.slice(messages.length - 120);
+    if (messages.length > MAX_STORED_MESSAGES) {
+      messages = messages.slice(messages.length - MAX_STORED_MESSAGES);
     }
 
     await redis.set(CHAT_STORAGE_KEY, messages);
@@ -129,8 +190,16 @@ export async function POST(request: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://aol-duyuru-pwa.vercel.app';
         const targetUrl = `${baseUrl}/?tab=chat`;
 
-        const pushTitle = `💬 ${author}`;
-        const pushBody = text.length > 85 ? text.substring(0, 82) + '...' : text;
+        // Personal DM Push Notification format
+        const isCeyda = author.toLowerCase().includes('ceyda');
+        const isFatih = author.toLowerCase().includes('fatih');
+        const pushTitle = isCeyda
+          ? '💖 Ceyda sana bir mesaj gönderdi'
+          : isFatih
+          ? '🎓 Fatih sana bir mesaj gönderdi'
+          : `💬 ${author}`;
+
+        const pushBody = text.length > 90 ? text.substring(0, 87) + '...' : text;
 
         const pushRes = await sendBroadcastNotification(pushTitle, pushBody, targetUrl);
         notificationSent = pushRes.success;

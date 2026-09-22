@@ -1,61 +1,112 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Send,
   RefreshCw,
   Sparkles,
-  User,
+  Heart,
+  Search,
+  X,
+  Reply,
   Smile,
-  ShieldCheck,
-  BellRing,
-  HelpCircle,
-  MessageCircleHeart,
-  ChevronDown
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ArrowDown,
+  Trash2,
+  Lock,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
-import { ChatMessage } from '@/app/api/chat/route';
-
-const AVATAR_OPTIONS = ['🐱', '🌸', '🎀', '🎓', '⚡', '📚', '🍰', '🌟', '🦄'];
+import { ChatMessage, ChatReplyPreview } from '@/app/api/chat/route';
 
 const QUICK_PROMPTS = [
-  'Kayıt yenileme ne zaman bitiyor? ⏳',
-  'Sınava kaç gün kaldı? 📝',
-  'Ders seçimini tamamladınız mı? 📚',
-  'Herkese sınavlarda başarılar dilerim! 🌸'
+  'Seni çok seviyorum ❤️',
+  'Özledim seni 🥺',
+  'Konuşalım mı? 🌸',
+  'Aramayı açar mısın? 📞',
+  'Ben her zaman yanındayım 🫂',
+  'Hadi barışalım artık 🎀'
 ];
 
-export default function ChatSection() {
+const REACTION_EMOJIS = ['❤️', '🥺', '🌸', '😂', '🫂', '✨'];
+
+interface ChatSectionProps {
+  onKeyboardChange?: (isOpen: boolean) => void;
+}
+
+export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [authorName, setAuthorName] = useState('Açık Liseli');
-  const [selectedAvatar, setSelectedAvatar] = useState('🎀');
+  const [authorName, setAuthorName] = useState<string>('Fatih');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('🎓');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Search feature states
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // Reply feature state
+  const [replyingTo, setReplyingTo] = useState<ChatReplyPreview | null>(null);
+
+  // Active reaction picker message ID
+  const [activePickerMsgId, setActivePickerMsgId] = useState<string | null>(null);
+
+  // Quick prompts toggle
+  const [showQuickPrompts, setShowQuickPrompts] = useState(false);
+
+  // Scroll to bottom button visibility
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // Safari iOS keyboard & viewport management
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved profile from localStorage
+  // Load saved profile or migrate from legacy
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem('aol_chat_author_name');
-      const savedAvatar = localStorage.getItem('aol_chat_author_avatar');
-      if (savedName) setAuthorName(savedName);
-      if (savedAvatar) setSelectedAvatar(savedAvatar);
+      const savedName = localStorage.getItem('aol_chat_dm_author');
+      const legacyName = localStorage.getItem('aol_chat_author_name');
+
+      if (savedName) {
+        setAuthorName(savedName);
+        setSelectedAvatar(savedName.toLowerCase().includes('ceyda') ? '🎀' : '🎓');
+      } else if (legacyName) {
+        if (legacyName.toLowerCase().includes('ceyda') || legacyName === 'Açık Liseli') {
+          setAuthorName('Ceyda');
+          setSelectedAvatar('🎀');
+          localStorage.setItem('aol_chat_dm_author', 'Ceyda');
+        } else {
+          setAuthorName('Fatih');
+          setSelectedAvatar('🎓');
+          localStorage.setItem('aol_chat_dm_author', 'Fatih');
+        }
+      } else {
+        setAuthorName('Fatih');
+        setSelectedAvatar('🎓');
+        localStorage.setItem('aol_chat_dm_author', 'Fatih');
+      }
     }
   }, []);
 
-  const saveProfile = (name: string, avatar: string) => {
-    const trimmed = name.trim() || 'Açık Liseli';
-    setAuthorName(trimmed);
-    setSelectedAvatar(avatar);
+  const switchAuthor = (name: 'Fatih' | 'Ceyda') => {
+    setAuthorName(name);
+    setSelectedAvatar(name === 'Ceyda' ? '🎀' : '🎓');
     if (typeof window !== 'undefined') {
-      localStorage.setItem('aol_chat_author_name', trimmed);
-      localStorage.setItem('aol_chat_author_avatar', avatar);
+      localStorage.setItem('aol_chat_dm_author', name);
     }
+    showToast(`Şu an "${name}" olarak mesaj yazıyorsunuz ✨`);
   };
 
   const showToast = (msg: string) => {
@@ -63,7 +114,59 @@ export default function ChatSection() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Fetch messages from API
+  // Safari visualViewport handling for 100% fluid mobile keyboard experience
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const height = window.visualViewport.height;
+        setViewportHeight(height);
+
+        // Check if keyboard is open
+        const keyboardActive = window.innerHeight - height > 140;
+        setIsKeyboardOpen(keyboardActive);
+        if (onKeyboardChange) {
+          onKeyboardChange(keyboardActive);
+        }
+
+        // Prevent Safari from bouncing the outer window
+        if (keyboardActive) {
+          window.scrollTo(0, 0);
+          // Keep bottom message in view
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+    };
+  }, [onKeyboardChange]);
+
+  // Lock body scroll when chat is active
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehavior = originalOverscroll;
+    };
+  }, []);
+
+  // Fetch messages from API (NEVER purges, loads full history)
   const fetchMessages = async (silent: boolean = false) => {
     if (!silent) setIsRefreshing(true);
     try {
@@ -83,11 +186,10 @@ export default function ChatSection() {
     }
   };
 
-  // Initial load and polling
+  // Initial load and polling every 3.5s
   useEffect(() => {
     fetchMessages();
 
-    // Auto-poll every 3.5 seconds
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchMessages(true);
@@ -97,17 +199,68 @@ export default function ChatSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Scroll to bottom when messages update
+  // Initial scroll to bottom
   useEffect(() => {
     if (messages.length > 0) {
       if (isFirstLoad.current) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
         isFirstLoad.current = false;
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     }
   }, [messages]);
+
+  // Monitor scroll for scroll-to-bottom button
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isFarFromBottom = scrollHeight - scrollTop - clientHeight > 180;
+    setShowScrollBottom(isFarFromBottom);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowScrollBottom(false);
+  };
+
+  // Search matches
+  const matchedMessageIds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return messages
+      .filter((m) => m.text.toLowerCase().includes(q))
+      .map((m) => m.id);
+  }, [messages, searchQuery]);
+
+  useEffect(() => {
+    setCurrentMatchIndex(0);
+    if (matchedMessageIds.length > 0) {
+      scrollToMatch(0);
+    }
+  }, [searchQuery, matchedMessageIds.length]);
+
+  const scrollToMatch = (index: number) => {
+    if (matchedMessageIds.length === 0) return;
+    const targetId = matchedMessageIds[index];
+    const el = document.getElementById(`msg-${targetId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleNextMatch = () => {
+    if (matchedMessageIds.length === 0) return;
+    const nextIdx = (currentMatchIndex + 1) % matchedMessageIds.length;
+    setCurrentMatchIndex(nextIdx);
+    scrollToMatch(nextIdx);
+  };
+
+  const handlePrevMatch = () => {
+    if (matchedMessageIds.length === 0) return;
+    const prevIdx =
+      (currentMatchIndex - 1 + matchedMessageIds.length) % matchedMessageIds.length;
+    setCurrentMatchIndex(prevIdx);
+    scrollToMatch(prevIdx);
+  };
 
   // Send a new message
   const handleSendMessage = async (e?: React.FormEvent, customText?: string) => {
@@ -118,7 +271,6 @@ export default function ChatSection() {
 
     setIsSending(true);
 
-    // Optimistic local add
     const tempId = `temp_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: tempId,
@@ -126,11 +278,19 @@ export default function ChatSection() {
       avatar: selectedAvatar,
       text: textToSend,
       createdAt: new Date().toISOString(),
-      badge: 'Sen'
+      badge: 'Sen',
+      replyTo: replyingTo || undefined,
+      reactions: {}
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
     setInputText('');
+    setReplyingTo(null);
+
+    // Scroll down immediately
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
 
     try {
       const res = await fetch('/api/chat', {
@@ -139,21 +299,16 @@ export default function ChatSection() {
         body: JSON.stringify({
           author: authorName,
           avatar: selectedAvatar,
-          text: textToSend
+          text: textToSend,
+          replyTo: replyingTo || undefined
         })
       });
 
       const data = await res.json();
       if (data.success && data.message) {
-        // Replace optimistic with real
         setMessages((prev) =>
           prev.map((m) => (m.id === tempId ? data.message : m))
         );
-        if (data.notificationSent) {
-          showToast('Mesajınız gönderildi ve herkese bildirim iletildi! 🔔');
-        } else {
-          showToast('Mesajınız sohbete eklendi! ✨');
-        }
       } else {
         showToast(data.error || 'Mesaj gönderilemedi.');
       }
@@ -162,17 +317,104 @@ export default function ChatSection() {
       showToast('Bağlantı hatası, tekrar deneyin.');
     } finally {
       setIsSending(false);
-      // Ensure we fetch latest state
       fetchMessages(true);
     }
   };
 
-  const handleForceUpdate = () => {
-    if (typeof window !== 'undefined' && (window as any).__forcePwaUpdate) {
-      (window as any).__forcePwaUpdate();
-    } else {
-      window.location.reload();
+  // Toggle reaction on a message
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    setActivePickerMsgId(null);
+
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const currentReactions = { ...(m.reactions || {}) };
+        const users = currentReactions[emoji] ? [...currentReactions[emoji]] : [];
+        const userIdx = users.indexOf(authorName);
+
+        if (userIdx > -1) {
+          users.splice(userIdx, 1);
+          if (users.length === 0) {
+            delete currentReactions[emoji];
+          } else {
+            currentReactions[emoji] = users;
+          }
+        } else {
+          users.push(authorName);
+          currentReactions[emoji] = users;
+        }
+
+        return { ...m, reactions: currentReactions };
+      })
+    );
+
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'react',
+          messageId,
+          emoji,
+          user: authorName
+        })
+      });
+    } catch (err) {
+      console.error('Reaction error:', err);
     }
+  };
+
+  // Copy message text
+  const handleCopyMessage = (text: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      showToast('Mesaj panoya kopyalandı 📋');
+    }
+  };
+
+  // Delete message
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    try {
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', messageId })
+      });
+      showToast('Mesaj silindi.');
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  // Normalize author naming for legacy messages
+  const getDisplayAuthor = (author: string) => {
+    if (author === 'Açık Liseli' || author.toLowerCase().includes('ceyda')) {
+      return 'Ceyda 🎀';
+    }
+    if (author.toLowerCase().includes('fatih')) {
+      return 'Fatih 🎓';
+    }
+    return author;
+  };
+
+  const getDisplayAvatar = (msg: ChatMessage) => {
+    if (msg.author === 'Açık Liseli' || msg.author.toLowerCase().includes('ceyda')) {
+      return '🎀';
+    }
+    if (msg.author.toLowerCase().includes('fatih')) {
+      return '🎓';
+    }
+    return msg.avatar || '🌸';
+  };
+
+  const isMyMessage = (msg: ChatMessage) => {
+    if (authorName === 'Ceyda') {
+      return msg.author === 'Ceyda' || msg.author === 'Açık Liseli';
+    }
+    return msg.author === 'Fatih';
   };
 
   const formatMessageTime = (dateStr: string) => {
@@ -187,258 +429,565 @@ export default function ChatSection() {
     }
   };
 
+  const isSameDay = (d1: Date, d2: Date) => {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  const formatDateDivider = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+
+      if (isSameDay(d, today)) return 'Bugün';
+      if (isSameDay(d, yesterday)) return 'Dün';
+
+      return d.toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  // Highlight search keywords
+  const renderMessageText = (text: string) => {
+    const q = searchQuery.trim();
+    if (!q) return text;
+
+    const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, i) =>
+      part.toLowerCase() === q.toLowerCase() ? (
+        <mark
+          key={i}
+          className="bg-amber-300 text-zinc-950 font-bold px-0.5 rounded shadow-xs"
+        >
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
+  };
+
   return (
-    <div className="w-full space-y-4 text-left animate-fade-in pb-24">
+    <div
+      className="flex flex-col w-full h-full max-h-full overflow-hidden text-left relative select-text"
+      style={{
+        height: viewportHeight ? `${viewportHeight - (isKeyboardOpen ? 10 : 75)}px` : 'calc(100dvh - 85px)'
+      }}
+    >
       {/* Toast Alert Notification */}
       {toastMessage && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-pink-600 to-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
-          <Sparkles className="w-4 h-4 text-amber-200" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-pink-600 to-rose-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-fade-in pointer-events-none">
+          <Sparkles className="w-3.5 h-3.5 text-amber-200" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Header Card */}
-      <div className="bg-white/80 border border-pink-200/60 rounded-3xl p-4 sm:p-5 backdrop-blur-md shadow-lg shadow-pink-100/40 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-2xl shadow-md shadow-pink-300/40 shrink-0">
-              💬
+      {/* TOP DM HEADER BAR */}
+      <div className="shrink-0 bg-white/95 backdrop-blur-md border border-pink-200/80 rounded-2xl p-2.5 sm:p-3 shadow-md shadow-pink-100/40 mb-2">
+        <div className="flex items-center justify-between gap-2">
+          {/* Couple Title & Live Status */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-lg shadow-sm text-white">
+                💖
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white"></span>
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-zinc-800">
-                  Açık Lise Topluluk Sohbeti
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-sm sm:text-base font-black text-zinc-800 tracking-tight truncate">
+                  Ceyda & Fatih
                 </h2>
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-pink-100 text-pink-700 rounded-md shrink-0">
+                  Özel DM
                 </span>
               </div>
-              <p className="text-xs text-zinc-500">
-                Öğrencilerle canlı sohbet et, soru sor ve yardımlaş 🌸
+              <p className="text-[11px] text-zinc-500 flex items-center gap-1 truncate">
+                <Lock className="w-3 h-3 text-pink-500 shrink-0" />
+                <span>Uçtan uca şifreli özel alan • {messages.length} mesaj</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          {/* Right Action Icons: Identity Switcher & Search & Refresh */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Quick 1-Tap Identity Switcher */}
+            <div className="flex items-center bg-pink-50 border border-pink-200/70 rounded-xl p-0.5 text-[11px] font-bold">
+              <button
+                onClick={() => switchAuthor('Fatih')}
+                className={`px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                  authorName === 'Fatih'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xs'
+                    : 'text-zinc-600 hover:text-pink-600'
+                }`}
+                title="Fatih olarak yaz"
+              >
+                <span>🎓</span>
+                <span className="hidden sm:inline">Fatih</span>
+              </button>
+              <button
+                onClick={() => switchAuthor('Ceyda')}
+                className={`px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                  authorName === 'Ceyda'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xs'
+                    : 'text-zinc-600 hover:text-pink-600'
+                }`}
+                title="Ceyda olarak yaz"
+              >
+                <span>🎀</span>
+                <span className="hidden sm:inline">Ceyda</span>
+              </button>
+            </div>
+
+            {/* Search Toggle Button */}
+            <button
+              onClick={() => {
+                setIsSearchOpen(!isSearchOpen);
+                if (isSearchOpen) {
+                  setSearchQuery('');
+                }
+              }}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isSearchOpen || searchQuery
+                  ? 'bg-pink-500 text-white border-pink-500 shadow-sm'
+                  : 'bg-white hover:bg-pink-50 text-zinc-700 border-pink-200'
+              }`}
+              title="Mesajlarda Ara"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+
             {/* Manual Refresh Button */}
             <button
               onClick={() => fetchMessages(false)}
               disabled={isRefreshing}
               title="Sohbeti Yenile"
-              className="p-2.5 rounded-2xl bg-pink-50 hover:bg-pink-100 text-pink-600 border border-pink-200/50 transition-all cursor-pointer disabled:opacity-50"
+              className="p-2 rounded-xl bg-white hover:bg-pink-50 text-pink-600 border border-pink-200 transition-all cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-
-            {/* Profile / Nickname button */}
-            <button
-              onClick={() => setShowProfileModal(!showProfileModal)}
-              className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200/60 text-xs font-bold text-pink-700 transition-all cursor-pointer shadow-sm"
-            >
-              <span className="text-base">{selectedAvatar}</span>
-              <span className="truncate max-w-[100px]">{authorName}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-pink-500" />
-            </button>
-
-            {/* iPhone PWA Cache Purge Button */}
-            <button
-              onClick={handleForceUpdate}
-              title="iPhone / PWA Önbelleğini Temizle ve En Son Sürüme Güncelle"
-              className="p-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/60 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span className="hidden md:inline">Sürümü Güncelle</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Profile / Nickname & Avatar Editor Dropdown */}
-        {showProfileModal && (
-          <div className="mt-4 pt-4 border-t border-pink-100 space-y-3 animate-fade-in">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <div className="flex-1 w-full">
-                <label className="text-[11px] font-bold text-pink-600 uppercase tracking-wider block mb-1">
-                  Sohbetteki Rumuzun (İsmin)
-                </label>
-                <input
-                  type="text"
-                  maxLength={25}
-                  value={authorName}
-                  onChange={(e) => saveProfile(e.target.value, selectedAvatar)}
-                  placeholder="Örn: 12. Dönem Açık Liseli"
-                  className="w-full bg-pink-50/50 border border-pink-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-pink-600 uppercase tracking-wider block mb-1">
-                  Avatarını Seç
-                </label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {AVATAR_OPTIONS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => saveProfile(authorName, emoji)}
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm transition-all cursor-pointer ${
-                        selectedAvatar === emoji
-                          ? 'bg-pink-500 text-white scale-110 shadow-md shadow-pink-300'
-                          : 'bg-pink-50 hover:bg-pink-100 text-zinc-700'
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {/* SEARCH BAR DROPDOWN */}
+        {isSearchOpen && (
+          <div className="mt-2.5 pt-2.5 border-t border-pink-100 flex items-center gap-2 animate-fade-in">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Önceki mesajlarda kelime ara..."
+                className="w-full bg-pink-50/60 border border-pink-200/80 rounded-xl pl-8 pr-7 py-1.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-400"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+
+            {searchQuery && (
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-zinc-600 shrink-0">
+                <span>
+                  {matchedMessageIds.length > 0
+                    ? `${currentMatchIndex + 1}/${matchedMessageIds.length}`
+                    : 'Bulunamadı'}
+                </span>
+                <button
+                  onClick={handlePrevMatch}
+                  disabled={matchedMessageIds.length === 0}
+                  className="p-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 disabled:opacity-40"
+                  title="Önceki eşleşme"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleNextMatch}
+                  disabled={matchedMessageIds.length === 0}
+                  className="p-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 disabled:opacity-40"
+                  title="Sonraki eşleşme"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         )}
-
-        {/* Push Notification Broadcast Notice */}
-        <div className="mt-3 bg-pink-50/60 border border-pink-200/50 rounded-2xl p-2.5 flex items-center gap-2 text-[11px] text-pink-700">
-          <BellRing className="w-3.5 h-3.5 shrink-0 text-pink-500 animate-pulse" />
-          <span>
-            <strong>Anlık Bildirim:</strong> Buraya yazdığınız mesajlar Açık Lise bildirimlerine abone olan tüm öğrencilere anında iletilir. 🔔
-          </span>
-        </div>
       </div>
 
-      {/* Quick Prompts */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <span className="text-[10px] font-bold text-pink-500 uppercase shrink-0 select-none">
-          Hızlı Mesaj:
-        </span>
-        {QUICK_PROMPTS.map((prompt, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSendMessage(undefined, prompt)}
-            disabled={isSending}
-            className="text-xs bg-white/80 hover:bg-pink-50 border border-pink-200 text-zinc-700 hover:text-pink-600 font-medium px-3 py-1.5 rounded-full shrink-0 transition-all cursor-pointer shadow-xs disabled:opacity-50"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
-
-      {/* Messages Scroll Area */}
-      <div className="bg-white/85 border border-pink-200/60 rounded-3xl p-4 sm:p-6 backdrop-blur-md shadow-xl shadow-pink-100/30 min-h-[360px] max-h-[500px] overflow-y-auto space-y-4">
+      {/* MESSAGES SCROLL CONTAINER */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-white/85 border border-pink-200/70 rounded-2xl p-3 sm:p-4 backdrop-blur-md shadow-inner space-y-3 relative"
+      >
         {isLoading ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-3 text-pink-500">
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-pink-500 py-12">
             <RefreshCw className="w-6 h-6 animate-spin text-pink-400" />
-            <span className="text-xs font-bold text-zinc-500">Sohbet yükleniyor...</span>
+            <span className="text-xs font-bold text-zinc-500">
+              Özel sohbet geçmişi yükleniyor...
+            </span>
           </div>
         ) : messages.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-2 text-center p-6">
-            <div className="text-4xl mb-1">🌸</div>
-            <h3 className="text-sm font-bold text-zinc-700">Henüz Mesaj Yazılmamış</h3>
+          <div className="h-full flex flex-col items-center justify-center gap-2 text-center p-6 py-12">
+            <div className="text-4xl mb-1">💖</div>
+            <h3 className="text-sm font-bold text-zinc-700">Ceyda & Fatih Özel Alanı</h3>
             <p className="text-xs text-zinc-500 max-w-xs">
-              İlk mesajı sen yazarak Açık Lise öğrencileriyle sohbeti başlatabilirsin!
+              Burası sadece ikinize özeldir. İlk mesajı yazarak konuşmayı başlatabilirsiniz!
             </p>
           </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.author === authorName;
+          messages.map((msg, index) => {
+            const isMe = isMyMessage(msg);
+            const prevMsg = index > 0 ? messages[index - 1] : null;
+            const showDateDivider =
+              !prevMsg ||
+              !isSameDay(new Date(prevMsg.createdAt), new Date(msg.createdAt));
+
+            const isMatched =
+              searchQuery &&
+              msg.text.toLowerCase().includes(searchQuery.trim().toLowerCase());
+            const isCurrentMatch =
+              isMatched && matchedMessageIds[currentMatchIndex] === msg.id;
+
+            const reactions = msg.reactions || {};
+            const hasReactions = Object.keys(reactions).length > 0;
 
             return (
-              <div
-                key={msg.id}
-                className={`flex items-end gap-2 ${
-                  isMe ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                {!isMe && (
-                  <div className="w-8 h-8 rounded-full bg-pink-100 border border-pink-200 flex items-center justify-center text-sm shrink-0 shadow-xs mb-1">
-                    {msg.avatar || '🌸'}
+              <div key={msg.id} id={`msg-${msg.id}`} className="space-y-2">
+                {/* Date divider pill */}
+                {showDateDivider && (
+                  <div className="flex items-center justify-center my-3 select-none">
+                    <span className="bg-pink-100/80 text-pink-700 text-[10px] font-bold px-3 py-1 rounded-full shadow-xs border border-pink-200/50">
+                      {formatDateDivider(msg.createdAt)}
+                    </span>
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[85%] sm:max-w-[75%] rounded-3xl p-3.5 shadow-sm transition-all ${
-                    isMe
-                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-br-xs'
-                      : 'bg-white border border-pink-100 text-zinc-800 rounded-bl-xs'
+                  className={`flex items-end gap-1.5 group relative ${
+                    isMe ? 'justify-end' : 'justify-start'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span
-                      className={`text-[11px] font-black truncate ${
-                        isMe ? 'text-pink-100' : 'text-pink-600'
-                      }`}
+                  {/* Left Avatar for other person */}
+                  {!isMe && (
+                    <div
+                      className="w-7 h-7 rounded-full bg-pink-100 border border-pink-200 flex items-center justify-center text-xs shrink-0 shadow-xs mb-0.5 select-none"
+                      title={getDisplayAuthor(msg.author)}
                     >
-                      {msg.author}
-                    </span>
+                      {getDisplayAvatar(msg)}
+                    </div>
+                  )}
 
-                    {msg.badge && (
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
+                  {/* Message Bubble Container */}
+                  <div
+                    className={`relative max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 shadow-xs transition-all duration-200 ${
+                      isMe
+                        ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-br-xs'
+                        : 'bg-white border border-pink-100 text-zinc-850 rounded-bl-xs'
+                    } ${
+                      isCurrentMatch
+                        ? 'ring-3 ring-amber-400 shadow-md shadow-amber-200 scale-[1.01]'
+                        : isMatched
+                        ? 'ring-2 ring-pink-400/60'
+                        : ''
+                    }`}
+                  >
+                    {/* Replying quote inside bubble */}
+                    {msg.replyTo && (
+                      <div
+                        onClick={() => {
+                          const el = document.getElementById(`msg-${msg.replyTo?.id}`);
+                          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        className={`mb-2 p-2 rounded-xl text-[11px] cursor-pointer border-l-3 transition-colors ${
                           isMe
-                            ? 'bg-white/20 text-white'
-                            : 'bg-pink-100 text-pink-600'
+                            ? 'bg-white/15 border-white text-pink-100 hover:bg-white/20'
+                            : 'bg-pink-50 border-pink-500 text-zinc-700 hover:bg-pink-100'
                         }`}
                       >
-                        {msg.badge}
+                        <div className="font-bold flex items-center gap-1 text-[10px] opacity-90">
+                          <Reply className="w-2.5 h-2.5" />
+                          <span>{msg.replyTo.author}</span>
+                        </div>
+                        <p className="truncate opacity-80 mt-0.5">{msg.replyTo.text}</p>
+                      </div>
+                    )}
+
+                    {/* Author & Actions header */}
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span
+                        className={`text-[11px] font-black truncate ${
+                          isMe ? 'text-pink-100' : 'text-pink-600'
+                        }`}
+                      >
+                        {isMe ? 'Sen' : getDisplayAuthor(msg.author)}
                       </span>
+
+                      {/* Message hover actions (Reply, React, Copy) */}
+                      <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() =>
+                            setReplyingTo({
+                              id: msg.id,
+                              author: getDisplayAuthor(msg.author),
+                              text: msg.text
+                            })
+                          }
+                          className={`p-1 rounded hover:bg-black/10 transition-colors cursor-pointer ${
+                            isMe ? 'text-pink-100' : 'text-zinc-500'
+                          }`}
+                          title="Cevapla"
+                        >
+                          <Reply className="w-3 h-3" />
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            setActivePickerMsgId(
+                              activePickerMsgId === msg.id ? null : msg.id
+                            )
+                          }
+                          className={`p-1 rounded hover:bg-black/10 transition-colors cursor-pointer ${
+                            isMe ? 'text-pink-100' : 'text-zinc-500'
+                          }`}
+                          title="Emoji Ekle"
+                        >
+                          <Smile className="w-3 h-3" />
+                        </button>
+
+                        <button
+                          onClick={() => handleCopyMessage(msg.text)}
+                          className={`p-1 rounded hover:bg-black/10 transition-colors cursor-pointer ${
+                            isMe ? 'text-pink-100' : 'text-zinc-500'
+                          }`}
+                          title="Kopyala"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+
+                        {isMe && (
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="p-1 rounded hover:bg-black/10 transition-colors cursor-pointer text-pink-200 hover:text-white"
+                            title="Sil"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Message Text with highlight */}
+                    <p className="text-xs sm:text-[13px] leading-relaxed break-words whitespace-pre-wrap select-text">
+                      {renderMessageText(msg.text)}
+                    </p>
+
+                    {/* Timestamp & double checkmark */}
+                    <div
+                      className={`text-[9px] mt-1.5 flex items-center justify-end gap-1 select-none ${
+                        isMe ? 'text-pink-200' : 'text-zinc-400'
+                      }`}
+                    >
+                      <span>{formatMessageTime(msg.createdAt)}</span>
+                      {isMe && <Check className="w-3 h-3 text-pink-200 inline" />}
+                    </div>
+
+                    {/* Reactions display pills */}
+                    {hasReactions && (
+                      <div className="flex flex-wrap items-center gap-1 mt-1.5 pt-1 border-t border-pink-200/40">
+                        {Object.entries(reactions).map(([emoji, users]) => {
+                          const iReacted = users.includes(authorName);
+                          return (
+                            <button
+                              key={emoji}
+                              onClick={() => handleToggleReaction(msg.id, emoji)}
+                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                                iReacted
+                                  ? 'bg-pink-100 text-pink-700 border-pink-300 shadow-xs'
+                                  : isMe
+                                  ? 'bg-white/20 text-white border-white/30'
+                                  : 'bg-zinc-50 text-zinc-700 border-zinc-200'
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              <span>{users.length}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Floating Reaction Emoji Picker Popover */}
+                    {activePickerMsgId === msg.id && (
+                      <div
+                        className={`absolute -top-10 z-40 bg-white/95 backdrop-blur-md border border-pink-200 rounded-full px-2 py-1 shadow-lg flex items-center gap-1.5 animate-fade-in ${
+                          isMe ? 'right-0' : 'left-0'
+                        }`}
+                      >
+                        {REACTION_EMOJIS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleToggleReaction(msg.id, emoji)}
+                            className="text-base hover:scale-130 transition-transform cursor-pointer p-0.5"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setActivePickerMsgId(null)}
+                          className="text-zinc-400 hover:text-zinc-600 pl-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-[13px] leading-relaxed break-words whitespace-pre-wrap">
-                    {msg.text}
-                  </p>
-
-                  <div
-                    className={`text-[9px] mt-1 text-right select-none ${
-                      isMe ? 'text-pink-200' : 'text-zinc-400'
-                    }`}
-                  >
-                    {formatMessageTime(msg.createdAt)}
-                  </div>
+                  {/* Right Avatar for me */}
+                  {isMe && (
+                    <div
+                      className="w-7 h-7 rounded-full bg-gradient-to-tr from-pink-400 to-rose-400 text-white flex items-center justify-center text-xs shrink-0 shadow-xs mb-0.5 select-none"
+                      title="Sen"
+                    >
+                      {selectedAvatar}
+                    </div>
+                  )}
                 </div>
-
-                {isMe && (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-400 to-rose-400 text-white flex items-center justify-center text-sm shrink-0 shadow-xs mb-1">
-                    {selectedAvatar}
-                  </div>
-                )}
               </div>
             );
           })
         )}
         <div ref={messagesEndRef} />
+
+        {/* Floating Scroll to Bottom Button */}
+        {showScrollBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="sticky bottom-2 right-2 float-right z-30 p-2.5 rounded-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg transition-all cursor-pointer flex items-center gap-1 text-xs font-bold animate-bounce"
+            title="En alta in"
+          >
+            <ArrowDown className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      {/* Message Input Box */}
+      {/* QUICK PROMPTS CHIPS ROW */}
+      <div className="shrink-0 mt-1">
+        <div className="flex items-center justify-between px-1 mb-1">
+          <button
+            onClick={() => setShowQuickPrompts(!showQuickPrompts)}
+            className="text-[10px] font-bold text-pink-600 hover:text-pink-700 flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <span>{showQuickPrompts ? 'Hızlı Mesajları Gizle ✕' : '💖 Hızlı Mesajlar'}</span>
+          </button>
+        </div>
+
+        {showQuickPrompts && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none animate-fade-in">
+            {QUICK_PROMPTS.map((prompt, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendMessage(undefined, prompt)}
+                disabled={isSending}
+                className="text-xs bg-white hover:bg-pink-50 border border-pink-200 text-zinc-700 hover:text-pink-600 font-medium px-2.5 py-1 rounded-full shrink-0 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* REPLY PREVIEW BAR (if replying to a message) */}
+      {replyingTo && (
+        <div className="shrink-0 bg-pink-50/90 border border-pink-200/80 rounded-xl px-3 py-1.5 mb-1 flex items-center justify-between text-xs animate-fade-in">
+          <div className="flex items-center gap-2 min-w-0">
+            <Reply className="w-3.5 h-3.5 text-pink-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="font-bold text-pink-700 block truncate">
+                {replyingTo.author} alıntılanıyor:
+              </span>
+              <span className="text-zinc-600 truncate block text-[11px]">
+                {replyingTo.text}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setReplyingTo(null)}
+            className="p-1 text-zinc-400 hover:text-zinc-700 cursor-pointer shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* BOTTOM INPUT BAR - SAFARI OPTIMIZED */}
       <form
         onSubmit={handleSendMessage}
-        className="bg-white/90 border border-pink-200/70 rounded-3xl p-2.5 backdrop-blur-md shadow-lg shadow-pink-200/30 flex items-center gap-2"
+        className="shrink-0 bg-white/95 border border-pink-200/80 rounded-2xl p-1.5 sm:p-2 backdrop-blur-md shadow-md shadow-pink-100/40 flex items-center gap-2"
       >
-        <div className="pl-3 pr-1 text-lg select-none">{selectedAvatar}</div>
+        <div
+          className="pl-2 pr-1 text-base select-none cursor-pointer"
+          title={`Şu an yazan: ${authorName}`}
+          onClick={() => switchAuthor(authorName === 'Fatih' ? 'Ceyda' : 'Fatih')}
+        >
+          {selectedAvatar}
+        </div>
 
         <input
+          ref={inputRef}
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Bir mesaj yazın (herkese bildirim gider)..."
-          maxLength={350}
+          placeholder={`${authorName} olarak mesaj yaz...`}
+          maxLength={1000}
           disabled={isSending}
-          className="flex-1 bg-transparent py-2 px-1 text-xs sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
+          onFocus={() => {
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }}
+          className="flex-1 bg-transparent py-1.5 px-1 text-xs sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
         />
 
         <div className="text-[10px] font-bold text-zinc-400 px-1 select-none hidden sm:inline">
-          {inputText.length}/350
+          {inputText.length}/1000
         </div>
 
         <button
           type="submit"
           disabled={!inputText.trim() || isSending}
-          className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold px-4 py-2.5 rounded-2xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-pink-300/50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shadow-pink-300/40 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
           {isSending ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
           ) : (
             <>
               <span className="text-xs hidden sm:inline">Gönder</span>
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
             </>
           )}
         </button>
