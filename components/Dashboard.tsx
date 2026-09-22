@@ -317,6 +317,13 @@ export default function Dashboard({
   const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
   const [isChatKeyboardOpen, setIsChatKeyboardOpen] = useState<boolean>(false);
 
+  // Reset chat keyboard open state when tab changes
+  useEffect(() => {
+    if (activeTab !== 'chat') {
+      setIsChatKeyboardOpen(false);
+    }
+  }, [activeTab]);
+
   // Load saved courses on initial mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1817,10 +1824,10 @@ export default function Dashboard({
       )}
 
       {/* Bottom Navigation Bar */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)] transition-transform duration-200 ${
+      <div className={`fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)] transition-all duration-200 ${
         isChatKeyboardOpen && activeTab === 'chat'
-          ? 'translate-y-full opacity-0 pointer-events-none'
-          : 'translate-y-0 opacity-100'
+          ? 'translate-y-full opacity-0 pointer-events-none invisible select-none'
+          : 'translate-y-0 opacity-100 visible'
       }`}>
         <div className="max-w-4xl mx-auto flex items-center justify-around py-2.5 px-6">
           <button

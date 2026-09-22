@@ -162,6 +162,8 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isInputFocusedRef = useRef(false);
+  const maxKnownHeightRef = useRef<number>(800);
 
   const isMyMessage = useCallback((msg: ChatMessage) => {
     if (authorName === 'Ceyda') {
@@ -229,71 +231,115 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
 
   // Lock outer document scroll completely when chat modal is active
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+
     const origBodyOverflow = document.body.style.overflow;
-    const origBodyPosition = document.body.style.position;
-    const origBodyWidth = document.body.style.width;
-    const origBodyHeight = document.body.style.height;
+    const origBodyOverscroll = document.body.style.overscrollBehavior;
     const origDocOverflow = document.documentElement.style.overflow;
+    const origDocOverscroll = document.documentElement.style.overscrollBehavior;
 
     document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.height = '100%';
+    document.body.style.overscrollBehavior = 'none';
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
 
     return () => {
       document.body.style.overflow = origBodyOverflow;
-      document.body.style.position = origBodyPosition;
-      document.body.style.width = origBodyWidth;
-      document.body.style.height = origBodyHeight;
+      document.body.style.overscrollBehavior = origBodyOverscroll;
       document.documentElement.style.overflow = origDocOverflow;
+      document.documentElement.style.overscrollBehavior = origDocOverscroll;
     };
   }, []);
 
+  // Sync container position and dimensions directly with visualViewport
+  // Using direct DOM style coordinates prevents React re-render lag while locking to the visible area
+  const syncViewport = useCallback(() => {
+    if (!chatRootRef.current || typeof window === 'undefined') return;
+
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+
+      if (vv.height > maxKnownHeightRef.current) {
+        maxKnownHeightRef.current = vv.height;
+      }
+
+      const heightDeficit = maxKnownHeightRef.current - vv.height;
+      const screenDeficit = (window.screen ? window.screen.height : window.innerHeight) - vv.height;
+      const keyboardActive =
+        heightDeficit > 100 ||
+        screenDeficit > 200 ||
+        (isInputFocusedRef.current && heightDeficit > 40);
+
+      // Lock chat root to the exact visual viewport coordinates
+      chatRootRef.current.style.top = `${vv.offsetTop}px`;
+      chatRootRef.current.style.left = `${vv.offsetLeft}px`;
+      chatRootRef.current.style.width = `${vv.width}px`;
+      chatRootRef.current.style.height = `${vv.height}px`;
+
+      // Prevent Safari window scroll displacement
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      if (document.body.scrollTop !== 0) {
+        document.body.scrollTop = 0;
+      }
+
+      setIsKeyboardOpen((prev) => {
+        if (prev !== keyboardActive) {
+          onKeyboardChange?.(keyboardActive);
+          return keyboardActive;
+        }
+        return prev;
+      });
+    } else {
+      chatRootRef.current.style.top = '0px';
+      chatRootRef.current.style.left = '0px';
+      chatRootRef.current.style.width = '100%';
+      chatRootRef.current.style.height = '100dvh';
+    }
+  }, [onKeyboardChange]);
+
   // iOS Safari visualViewport management:
-  // Dynamically resizes the container with 0 lag and 0 jitter.
-  // Directly updates container style without triggering React re-renders on every animation frame.
+  // Dynamically syncs on resize and scroll events
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    if (window.visualViewport) {
+      maxKnownHeightRef.current = window.visualViewport.height;
+    } else {
+      maxKnownHeightRef.current = window.innerHeight;
+    }
+
     let rafId: number | null = null;
-    const handleViewport = () => {
+    const scheduleSync = () => {
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        if (!window.visualViewport || !chatRootRef.current) return;
-        const vv = window.visualViewport;
-
-        // Apply viewport height directly - avoiding React re-renders during keyboard slide
-        chatRootRef.current.style.height = `${vv.height}px`;
-
-        const keyboardActive = (window.innerHeight - vv.height) > 120;
-        setIsKeyboardOpen((prev) => {
-          if (prev !== keyboardActive) {
-            onKeyboardChange?.(keyboardActive);
-            return keyboardActive;
-          }
-          return prev;
-        });
-
-        if (keyboardActive) {
-          // Keep messages visible at bottom
-          scrollToBottom(false);
-        }
+        syncViewport();
       });
     };
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewport);
-      handleViewport();
+      window.visualViewport.addEventListener('resize', scheduleSync);
+      window.visualViewport.addEventListener('scroll', scheduleSync);
     }
+    window.addEventListener('resize', scheduleSync);
+    window.addEventListener('scroll', scheduleSync, { passive: true });
+
+    syncViewport();
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewport);
+        window.visualViewport.removeEventListener('resize', scheduleSync);
+        window.visualViewport.removeEventListener('scroll', scheduleSync);
       }
+      window.removeEventListener('resize', scheduleSync);
+      window.removeEventListener('scroll', scheduleSync);
     };
-  }, [onKeyboardChange, scrollToBottom]);
+  }, [syncViewport]);
 
   // Fetch messages from API with smart diffing & auto-scroll
   const fetchMessages = useCallback(async (silent: boolean = false) => {
@@ -648,12 +694,16 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
   return (
     <div
       ref={chatRootRef}
-      className="fixed inset-x-0 top-0 z-40 bg-[#ffe5ec] flex flex-col justify-between overflow-hidden select-text text-left transition-[padding-bottom] duration-150 ease-out"
+      className={`fixed bg-[#ffe5ec] flex flex-col justify-between overflow-hidden select-text text-left transition-[padding-bottom] duration-150 ease-out ${
+        isKeyboardOpen ? 'z-55' : 'z-40'
+      }`}
       style={{
+        top: 0,
+        left: 0,
+        width: '100%',
         height: '100dvh',
-        maxHeight: '100dvh',
         paddingTop: 'max(env(safe-area-inset-top, 0px), 6px)',
-        paddingBottom: isKeyboardOpen ? '6px' : 'calc(env(safe-area-inset-bottom, 0px) + 68px)',
+        paddingBottom: isKeyboardOpen ? '8px' : 'calc(env(safe-area-inset-bottom, 0px) + 68px)',
         touchAction: 'pan-y'
       }}
     >
@@ -1185,9 +1235,30 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
             maxLength={1000}
             disabled={isSending}
             onFocus={() => {
+              isInputFocusedRef.current = true;
+              setIsKeyboardOpen(true);
+              onKeyboardChange?.(true);
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
               setTimeout(() => {
+                syncViewport();
                 scrollToBottom(false);
-              }, 120);
+              }, 40);
+              setTimeout(() => {
+                syncViewport();
+                scrollToBottom(false);
+              }, 140);
+            }}
+            onBlur={() => {
+              isInputFocusedRef.current = false;
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+              setTimeout(() => {
+                syncViewport();
+              }, 60);
+              setTimeout(() => {
+                syncViewport();
+              }, 160);
             }}
             className="flex-1 bg-transparent py-1.5 px-1 text-[16px] sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
           />
