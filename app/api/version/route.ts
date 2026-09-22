@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export const APP_VERSION = '2026.09.22-dm-v5';
+export const APP_VERSION = '2026.09.22-dm-v6';
 
 export async function GET() {
   return NextResponse.json(

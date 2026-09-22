@@ -12,8 +12,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Prevents the browser zoom effect on inputs, giving a 100% native feel on iOS
-  interactiveWidget: 'resizes-content' // Tells Safari/mobile browsers to resize content when virtual keyboard opens
+  userScalable: false // Prevents the browser zoom effect on inputs, giving a 100% native feel on iOS
 };
 
 export const metadata: Metadata = {
@@ -44,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" className="h-full scroll-smooth">
+    <html lang="tr" className="h-full">
       <head>
         {/* Force iOS Safari Home-Screen WebClips to revalidate HTML & assets */}
         <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />

@@ -17,6 +17,7 @@ import {
   Smartphone,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   ArrowDown,
   Lock,
   MessageCircle,
@@ -118,9 +119,10 @@ function playCuteChime() {
 
 interface ChatSectionProps {
   onKeyboardChange?: (isOpen: boolean) => void;
+  onBack?: () => void;
 }
 
-export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
+export default function ChatSection({ onKeyboardChange, onBack }: ChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [authorName, setAuthorName] = useState<string>('Fatih');
@@ -268,10 +270,12 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
 
       const heightDeficit = maxKnownHeightRef.current - vv.height;
       const screenDeficit = (window.screen ? window.screen.height : window.innerHeight) - vv.height;
+      
+      // If input is focused, keyboard is 100% active. Never allow it to flicker back to false.
       const keyboardActive =
+        isInputFocusedRef.current ||
         heightDeficit > 100 ||
-        screenDeficit > 200 ||
-        (isInputFocusedRef.current && heightDeficit > 40);
+        screenDeficit > 200;
 
       // Lock chat root to the exact visual viewport coordinates
       chatRootRef.current.style.top = `${vv.offsetTop}px`;
@@ -720,7 +724,17 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
         <div className="shrink-0 bg-white/95 backdrop-blur-md border border-pink-200/80 rounded-2xl p-2.5 sm:p-3 shadow-md shadow-pink-100/40 mb-2">
           <div className="flex items-center justify-between gap-2">
             {/* Couple Title & Live Status & Device Detection Pill */}
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="p-1 -ml-1 text-zinc-500 hover:text-pink-600 rounded-xl hover:bg-pink-100/60 transition-colors cursor-pointer shrink-0"
+                  title="Ana Sayfaya Dön"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
               <div className="relative shrink-0">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-lg shadow-sm text-white">
                   💖
@@ -1240,14 +1254,15 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
               onKeyboardChange?.(true);
               window.scrollTo(0, 0);
               document.body.scrollTop = 0;
+              syncViewport();
               setTimeout(() => {
                 syncViewport();
                 scrollToBottom(false);
-              }, 40);
+              }, 80);
               setTimeout(() => {
                 syncViewport();
                 scrollToBottom(false);
-              }, 140);
+              }, 250);
             }}
             onBlur={() => {
               isInputFocusedRef.current = false;
@@ -1255,10 +1270,10 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
               document.body.scrollTop = 0;
               setTimeout(() => {
                 syncViewport();
-              }, 60);
+              }, 80);
               setTimeout(() => {
                 syncViewport();
-              }, 160);
+              }, 250);
             }}
             className="flex-1 bg-transparent py-1.5 px-1 text-[16px] sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
           />
@@ -1269,6 +1284,7 @@ export default function ChatSection({ onKeyboardChange }: ChatSectionProps) {
 
           <button
             type="submit"
+            onMouseDown={(e) => e.preventDefault()}
             disabled={!inputText.trim() || isSending}
             className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm shadow-pink-300/40 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >

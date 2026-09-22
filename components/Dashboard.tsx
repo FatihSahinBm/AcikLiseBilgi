@@ -1797,7 +1797,7 @@ export default function Dashboard({
         </div>
       ) : (
         /* Ceyda & Fatih Özel DM Alanı */
-        <ChatSection onKeyboardChange={setIsChatKeyboardOpen} />
+        <ChatSection onKeyboardChange={setIsChatKeyboardOpen} onBack={() => setActiveTab('home')} />
       )}
 
       {/* Informative Footer */}
@@ -1824,59 +1824,57 @@ export default function Dashboard({
       )}
 
       {/* Bottom Navigation Bar */}
-      <div className={`fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)] transition-all duration-200 ${
-        isChatKeyboardOpen && activeTab === 'chat'
-          ? 'translate-y-full opacity-0 pointer-events-none invisible select-none'
-          : 'translate-y-0 opacity-100 visible'
-      }`}>
-        <div className="max-w-4xl mx-auto flex items-center justify-around py-2.5 px-6">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
-              activeTab === 'home' 
-                ? 'text-pink-600 scale-105 font-bold' 
-                : 'text-zinc-500 hover:text-pink-500'
-            }`}
-          >
-            <Bell className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'home' ? 'rotate-12 scale-110' : 'group-hover:scale-110'}`} />
-            <span className="text-[10px] tracking-wide select-none">Ana Sayfa</span>
-            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
-              activeTab === 'home' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
-            }`} />
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('lessons')}
-            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
-              activeTab === 'lessons' 
-                ? 'text-pink-600 scale-105 font-bold' 
-                : 'text-zinc-500 hover:text-pink-500'
-            }`}
-          >
-            <BookOpen className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'lessons' ? 'scale-110' : 'group-hover:scale-110'}`} />
-            <span className="text-[10px] tracking-wide select-none">Derslerim</span>
-            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
-              activeTab === 'lessons' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
-            }`} />
-          </button>
+      {!(isChatKeyboardOpen && activeTab === 'chat') && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-white/85 backdrop-blur-md border-t border-pink-100 shadow-[0_-10px_25px_rgba(255,179,198,0.12)]">
+          <div className="max-w-4xl mx-auto flex items-center justify-around py-2.5 px-6">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+                activeTab === 'home' 
+                  ? 'text-pink-600 scale-105 font-bold' 
+                  : 'text-zinc-500 hover:text-pink-500'
+              }`}
+            >
+              <Bell className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'home' ? 'rotate-12 scale-110' : 'group-hover:scale-110'}`} />
+              <span className="text-[10px] tracking-wide select-none">Ana Sayfa</span>
+              <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+                activeTab === 'home' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+              }`} />
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('lessons')}
+              className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+                activeTab === 'lessons' 
+                  ? 'text-pink-600 scale-105 font-bold' 
+                  : 'text-zinc-500 hover:text-pink-500'
+              }`}
+            >
+              <BookOpen className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'lessons' ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <span className="text-[10px] tracking-wide select-none">Derslerim</span>
+              <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+                activeTab === 'lessons' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+              }`} />
+            </button>
 
-          {/* Ceyda & Fatih Özel DM Sekmesi */}
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
-              activeTab === 'chat' 
-                ? 'text-pink-600 scale-105 font-bold' 
-                : 'text-zinc-500 hover:text-pink-500'
-            }`}
-          >
-            <MessageCircle className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'chat' ? 'scale-110 text-pink-500' : 'group-hover:scale-110'}`} />
-            <span className="text-[10px] tracking-wide select-none">Özel DM 💖</span>
-            <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
-              activeTab === 'chat' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
-            }`} />
-          </button>
+            {/* Ceyda & Fatih Özel DM Sekmesi */}
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex flex-col items-center gap-0.5 cursor-pointer transition-all duration-300 relative group py-1 ${
+                activeTab === 'chat' 
+                  ? 'text-pink-600 scale-105 font-bold' 
+                  : 'text-zinc-500 hover:text-pink-500'
+              }`}
+            >
+              <MessageCircle className={`w-5 h-5 transition-transform duration-300 ${activeTab === 'chat' ? 'scale-110 text-pink-500' : 'group-hover:scale-110'}`} />
+              <span className="text-[10px] tracking-wide select-none">Özel DM 💖</span>
+              <span className={`w-1.5 h-1.5 rounded-full bg-pink-500 transition-all duration-300 ${
+                activeTab === 'chat' ? 'opacity-100 scale-100 mt-0.5' : 'opacity-0 scale-0 h-0 mt-0'
+              }`} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
